@@ -1,0 +1,24 @@
+# deps
+node_modules/
+
+# next
+.next/
+out/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# db file (don't commit the database)
+*.db
+*.db-shm
+*.db-wal
+
+# drizzle migrations (optional to commit)
+drizzle/
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*

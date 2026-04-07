@@ -33,7 +33,7 @@ export function formatCurrency(totalCp: number, type: 'dnd' | 'wealth' = 'dnd'):
 
 // ── Currency input sub-component ─────────────────────────────
 
-function CurrencyInput({
+export function CurrencyInput({
   label,
   onAdjust,
   loading,

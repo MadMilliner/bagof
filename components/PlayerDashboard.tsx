@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/8bit/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { ItemCard } from '@/components/inventory/ItemCard'
 import { AddItemForm } from '@/components/inventory/AddItemForm'
-import { GoldPanel } from '@/components/gold/GoldPanel'
+import { GoldPanel, CurrencyInput, formatCurrency } from '@/components/gold/GoldPanel'
 import { ThemeToggle } from '@/components/ThemeProvider'
 import type { Item, Member, Session, ItemType } from '@/types'
 
@@ -97,6 +97,16 @@ export function PlayerDashboard({
     setMyItems(prev => prev.map(i => i.id === item.id ? { ...i, private: !i.private } : i))
   }
 
+  const updateItemAction = async (item: Item, updates: Partial<Item>) => {
+    const res = await fetch('/api/items', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: memberToken, itemId: item.id, action: 'update', updates }),
+    })
+    if (!res.ok) return
+    setMyItems(prev => prev.map(i => i.id === item.id ? { ...i, ...updates } : i))
+  }
+
   const deleteItem = async (item: Item) => {
     const res = await fetch('/api/items', {
       method: 'DELETE',
@@ -126,6 +136,18 @@ export function PlayerDashboard({
     })
     if (!res.ok) return
     setGold(prev => ({ ...prev, party: Math.max(0, prev.party + deltaCp) }))
+  }
+
+  const transferToPool = async (amount: number) => {
+    if (amount <= 0 || amount > gold.public) return
+    await adjustGold(-amount, 'publicGold')
+    await adjustPartyGold(amount)
+  }
+
+  const transferFromPool = async (amount: number) => {
+    if (amount <= 0 || amount > gold.party) return
+    await adjustPartyGold(-amount)
+    await adjustGold(amount, 'publicGold')
   }
 
   const totalOtherItems = initialOtherMembers.reduce((s, o) => s + o.items.length, 0)
@@ -183,6 +205,7 @@ export function PlayerDashboard({
                   onOffer={offerItem}
                   onTogglePrivate={togglePrivate}
                   onDelete={deleteItem}
+                  onUpdate={updateItemAction}
                 />
               ))
             )}
@@ -194,8 +217,26 @@ export function PlayerDashboard({
             publicGold={gold.party}
             currencyType={session.currencyType}
             titleOverride={session.currencyType === 'wealth' ? "Party Bag Wealth" : "Party Bag Gold"}
-            onAdjustPublic={adjustPartyGold}
           />
+          <div className="border-2 border-black dark:border-white p-3 space-y-4 bg-card mt-4 mb-4">
+            <p className="font-press-start text-[10px] text-muted-foreground border-b-2 border-black dark:border-white pb-2">
+              Transfer Currency
+            </p>
+            <CurrencyInput
+              label="Donate to Party Bag"
+              onAdjust={transferToPool}
+              loading={loading}
+              currencyType={session.currencyType}
+            />
+            <div className="border-t-2 border-black dark:border-white pt-2">
+              <CurrencyInput
+                label="Take from Party Bag"
+                onAdjust={transferFromPool}
+                loading={loading}
+                currencyType={session.currencyType}
+              />
+            </div>
+          </div>
           <div className="space-y-2">
             {partyPool.length === 0 ? (
               <p className="font-press-start text-[10px] text-muted-foreground text-center py-8">
@@ -219,24 +260,29 @@ export function PlayerDashboard({
               <p className="font-press-start text-[10px] text-muted-foreground text-center py-8">
                 No other party members.
               </p>
-            ) : initialOtherMembers.every(o => o.items.length === 0) ? (
-              <p className="font-press-start text-[10px] text-muted-foreground text-center py-8">
-                No public items from other members yet.
-              </p>
             ) : (
               initialOtherMembers.map(({ member: m, items }) => (
-                items.length > 0 && (
-                  <Card key={m.id}>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-xs">⚔️ {m.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {items.map(item => (
+                <Card key={m.id}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs flex items-center justify-between">
+                      <span>⚔️ {m.name}</span>
+                      <span className="text-yellow-600 dark:text-yellow-400">
+                        {formatCurrency(m.publicGold, session.currencyType)}
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {items.length === 0 ? (
+                      <p className="font-press-start text-[10px] text-muted-foreground pt-1 pb-2">
+                        No public items.
+                      </p>
+                    ) : (
+                      items.map(item => (
                         <ItemCard key={item.id} item={item} />
-                      ))}
-                    </CardContent>
-                  </Card>
-                )
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
               ))
             )}
           </div>

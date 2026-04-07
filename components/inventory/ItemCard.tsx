@@ -1,30 +1,43 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/8bit/card'
 import { Badge } from '@/components/ui/8bit/badge'
 import { Button } from '@/components/ui/8bit/button'
+import { Textarea } from '@/components/ui/8bit/textarea'
+import { DiceRollerPopup } from '@/components/DiceRoller'
 import type { Item } from '@/types'
 
-
 const URL_REGEX = /(https?:\/\/[^\s]+)/g
+const DICE_REGEX = /\b(\d+d\d+(?:[+-]\d+)?)\b/gi
 
-function linkify(text: string) {
-  const parts = text.split(URL_REGEX)
-  return parts.map((part, i) =>
-    URL_REGEX.test(part) ? (
-      <a
-        key={i}
-        href={part}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline underline-offset-2 text-blue-600 dark:text-blue-400 break-all"
-      >
-        {part}
-      </a>
-    ) : (
-      part
-    )
-  )
+function formatDescription(text: string, onDiceClick: (notation: string) => void) {
+  const urlParts = text.split(URL_REGEX)
+  return urlParts.map((part, i) => {
+    if (URL_REGEX.test(part)) {
+      return (
+        <a key={`u-${i}`} href={part} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 text-blue-600 dark:text-blue-400 break-all">
+          {part}
+        </a>
+      )
+    }
+
+    const diceParts = part.split(DICE_REGEX)
+    return diceParts.map((sub, j) => {
+      if (/^\d+d\d+(?:[+-]\d+)?$/i.test(sub)) {
+        return (
+          <button
+            key={`d-${i}-${j}`}
+            onClick={() => onDiceClick(sub)}
+            className="text-orange-600 dark:text-orange-400 underline decoration-dotted font-bold px-1 hover:bg-orange-100 dark:hover:bg-orange-900/30"
+          >
+            {sub}
+          </button>
+        )
+      }
+      return sub
+    })
+  })
 }
 
 const TYPE_ICONS: Record<Item['type'], string> = {
@@ -49,6 +62,7 @@ interface ItemCardProps {
   onOffer?: (item: Item) => void
   onTogglePrivate?: (item: Item) => void
   onDelete?: (item: Item) => void
+  onUpdate?: (item: Item, updates: Partial<Item>) => Promise<void>
 }
 
 export function ItemCard({
@@ -59,73 +73,124 @@ export function ItemCard({
   onOffer,
   onTogglePrivate,
   onDelete,
+  onUpdate
 }: ItemCardProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [draftDesc, setDraftDesc] = useState(item.description)
+  const [diceNotation, setDiceNotation] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
   const isInPool = item.ownerId === null
 
+  const handleSave = async () => {
+    if (onUpdate && draftDesc !== item.description) {
+      setSaving(true)
+      await onUpdate(item, { description: draftDesc })
+      setSaving(false)
+    }
+    setIsEditing(false)
+  }
+
+  const handleCancel = () => {
+    setDraftDesc(item.description)
+    setIsEditing(false)
+  }
+
   return (
-    <Card className="w-full">
-      <CardContent className="p-3">
-        <div className="flex items-start gap-3">
-          <span className="text-xl mt-0.5">{TYPE_ICONS[item.type]}</span>
+    <>
+      {diceNotation && <DiceRollerPopup notation={diceNotation} onClose={() => setDiceNotation(null)} />}
+      <Card className="w-full">
+        <CardContent className="p-3">
+          <div className="flex items-start gap-3">
+            <span className="text-xl mt-0.5">{TYPE_ICONS[item.type]}</span>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <span className="font-press-start text-xs text-foreground leading-tight">
-                {item.name}
-                {item.quantity > 1 && (
-                  <span className="text-muted-foreground"> ×{item.quantity}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="font-press-start text-xs text-foreground leading-tight">
+                  {item.name}
+                  {item.quantity > 1 && (
+                    <span className="text-muted-foreground"> ×{item.quantity}</span>
+                  )}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-1 mb-2">
+                <Badge variant={TYPE_VARIANT[item.type]}>{item.type}</Badge>
+                {item.private && <Badge variant="outline">🔒 Private</Badge>}
+                {isInPool && <Badge variant="secondary">Party Bag</Badge>}
+              </div>
+
+              {!isEditing ? (
+                item.description && (
+                  <div className="font-press-start text-[10px] text-muted-foreground leading-relaxed mb-2 break-words">
+                    {formatDescription(item.description, setDiceNotation)}
+                  </div>
+                )
+              ) : (
+                <div className="mb-2 space-y-2">
+                  <Textarea
+                    value={draftDesc}
+                    onChange={e => setDraftDesc(e.target.value)}
+                    className="min-h-[80px] text-[10px] font-press-start"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleSave} disabled={saving}>Save</Button>
+                    <Button size="sm" variant="outline" onClick={handleCancel} disabled={saving}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                {isInPool && onClaim && (
+                  <Button size="sm" onClick={() => onClaim(item)}>
+                    Claim
+                  </Button>
                 )}
-              </span>
-            </div>
 
-            <div className="flex flex-wrap gap-1 mb-2">
-              <Badge variant={TYPE_VARIANT[item.type]}>{item.type}</Badge>
-              {item.private && <Badge variant="outline">🔒 Private</Badge>}
-              {isInPool && <Badge variant="secondary">Party Bag</Badge>}
-            </div>
+                {viewerIsOwner && (
+                  <>
+                    {onOffer && !isInPool && (
+                      <Button size="sm" variant="secondary" onClick={() => onOffer(item)}>
+                        Offer to Party
+                      </Button>
+                    )}
+                    {onTogglePrivate && (
+                      <Button size="sm" variant="outline" onClick={() => onTogglePrivate(item)}>
+                        {item.private ? 'Make Public' : 'Make Private'}
+                      </Button>
+                    )}
+                    {onUpdate && !isEditing && (
+                      <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                        Edit Notes
+                      </Button>
+                    )}
+                    {onDelete && (
+                      <Button size="sm" variant="destructive" onClick={() => onDelete(item)}>
+                        Drop
+                      </Button>
+                    )}
+                  </>
+                )}
 
-            {item.description && (
-              <p className="font-press-start text-[10px] text-muted-foreground leading-relaxed mb-2">
-                {linkify(item.description)}
-              </p>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              {isInPool && onClaim && (
-                <Button size="sm" onClick={() => onClaim(item)}>
-                  Claim
-                </Button>
-              )}
-
-              {viewerIsOwner && (
-                <>
-                  {onOffer && !isInPool && (
-                    <Button size="sm" variant="secondary" onClick={() => onOffer(item)}>
-                      Offer to Party
-                    </Button>
-                  )}
-                  {onTogglePrivate && (
-                    <Button size="sm" variant="outline" onClick={() => onTogglePrivate(item)}>
-                      {item.private ? 'Make Public' : 'Make Private'}
-                    </Button>
-                  )}
-                  {onDelete && (
-                    <Button size="sm" variant="destructive" onClick={() => onDelete(item)}>
-                      Drop
-                    </Button>
-                  )}
-                </>
-              )}
-
-              {viewerIsDM && !viewerIsOwner && onDelete && (
-                <Button size="sm" variant="destructive" onClick={() => onDelete(item)}>
-                  Remove
-                </Button>
-              )}
+                {viewerIsDM && !viewerIsOwner && (
+                  <>
+                    {onUpdate && !isEditing && (
+                      <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                        Edit Notes
+                      </Button>
+                    )}
+                    {onDelete && (
+                      <Button size="sm" variant="destructive" onClick={() => onDelete(item)}>
+                        Remove
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </>
   )
 }

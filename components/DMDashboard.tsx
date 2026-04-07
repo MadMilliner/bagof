@@ -83,10 +83,19 @@ export function DMDashboard({
       body: JSON.stringify({ dmToken, action: 'give', memberId, deltaCp, field }),
     })
     if (!res.ok) return
-    if (!res.ok) return
     setMembers(prev => prev.map(m =>
       m.id === memberId ? { ...m, [field]: Math.max(0, m[field] + deltaCp) } : m
     ))
+  }
+
+  const updateItemAction = async (item: Item, updates: Partial<Item>) => {
+    const res = await fetch('/api/items', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dmToken, itemId: item.id, action: 'update', updates }),
+    })
+    if (!res.ok) return
+    setAllItems(prev => prev.map(i => i.id === item.id ? { ...i, ...updates } : i))
   }
 
   const adjustPartyGold = async (deltaCp: number) => {
@@ -151,7 +160,7 @@ export function DMDashboard({
               </p>
             ) : (
               partyPool.map(item => (
-                <ItemCard key={item.id} item={item} viewerIsDM onDelete={deleteItem} />
+                <ItemCard key={item.id} item={item} viewerIsDM onDelete={deleteItem} onUpdate={updateItemAction} />
               ))
             )}
           </div>
@@ -183,6 +192,7 @@ export function DMDashboard({
                           item={item}
                           viewerIsDM
                           onDelete={deleteItem}
+                          onUpdate={updateItemAction}
                         />
                       ))
                     )}

@@ -1,4 +1,5 @@
 import { client, migrate } from './index'
+export { client }
 import { randomUUID } from 'crypto'
 import type { Item, Member, Session } from '@/types'
 
@@ -184,7 +185,7 @@ export async function updateItem(
   if (fields.length === 0) return false
 
   const whereClause = ownerId ? 'id = ? AND owner_id = ?' : 'id = ? AND session_id = ?'
-  args.push(itemId, ownerId ?? sessionId)
+  args.push(itemId, (ownerId ?? sessionId)!)
 
   const result = await client.execute({
     sql: `UPDATE items SET ${fields.join(', ')} WHERE ${whereClause}`,
@@ -201,9 +202,35 @@ export async function deleteItem(
   const whereClause = ownerId ? 'id = ? AND owner_id = ?' : 'id = ? AND session_id = ?'
   const result = await client.execute({
     sql: `DELETE FROM items WHERE ${whereClause}`,
-    args: [itemId, ownerId ?? sessionId],
+    args: [itemId, (ownerId ?? sessionId)!],
   })
   return result.rowsAffected > 0
+}
+
+export async function offerItemSplit(itemId: string, memberId: string): Promise<boolean> {
+  const itemRes = await client.execute({
+    sql: 'SELECT * FROM items WHERE id = ? AND owner_id = ?',
+    args: [itemId, memberId],
+  })
+  if (!itemRes.rows[0]) return false
+
+  const existing = itemRes.rows[0]
+  const qty = existing.quantity as number
+
+  if (qty > 1) {
+    await client.execute({ sql: 'DELETE FROM items WHERE id = ?', args: [itemId] })
+    for (let i = 0; i < qty; i++) {
+      await client.execute({
+        sql: `INSERT INTO items (id, session_id, owner_id, name, description, type, private, offered_to_party, quantity)
+              VALUES (?, ?, NULL, ?, ?, ?, 0, 1, 1)`,
+        args: [randomUUID(), existing.session_id, existing.name, existing.description, existing.type],
+      })
+    }
+  } else {
+    await offerItem(itemId, memberId)
+  }
+
+  return true
 }
 
 // ── Gold ──────────────────────────────────────────────────────

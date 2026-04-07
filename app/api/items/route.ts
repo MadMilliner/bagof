@@ -7,7 +7,7 @@ import {
   offerItem,
   updateItem,
   deleteItem,
-  client,
+  offerItemSplit
 } from '@/db/queries'
 import { randomUUID } from 'crypto'
 
@@ -97,40 +97,11 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (action === 'offer') {
-      if (!memberId) return NextResponse.json({ error: 'Only members can offer' }, { status: 403 })
-
-      // Fetch the item first to check quantity
-      const itemRes = await client.execute({
-        sql: 'SELECT * FROM items WHERE id = ? AND owner_id = ?',
-        args: [itemId, memberId],
-      })
-      if (!itemRes.rows[0]) return NextResponse.json({ error: 'Item not found' }, { status: 404 })
-
-      const existingItem = itemRes.rows[0]
-      const qty = existingItem.quantity as number
-
-      if (qty > 1) {
-        // Delete the original and create N individual pool items
-        await client.execute({ sql: 'DELETE FROM items WHERE id = ?', args: [itemId] })
-        for (let i = 0; i < qty; i++) {
-          await client.execute({
-            sql: `INSERT INTO items (id, session_id, owner_id, name, description, type, private, offered_to_party, quantity)
-                  VALUES (?, ?, NULL, ?, ?, ?, 0, 1, 1)`,
-            args: [
-              randomUUID(),
-              existingItem.session_id,
-              existingItem.name,
-              existingItem.description,
-              existingItem.type,
-            ],
-          })
-        }
-      } else {
-        await offerItem(itemId, memberId)
-      }
-
-      return NextResponse.json({ success: true })
-    }
+  if (!memberId) return NextResponse.json({ error: 'Only members can offer' }, { status: 403 })
+  const ok = await offerItemSplit(itemId, memberId)
+  if (!ok) return NextResponse.json({ error: 'Item not found' }, { status: 404 })
+  return NextResponse.json({ success: true })
+}
 
     if (action === 'update') {
       await updateItem(

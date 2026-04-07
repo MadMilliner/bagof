@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/8bit/button'
+import { FaMoon } from "react-icons/fa";
+import { FaRegSun } from "react-icons/fa6";
 
 type Theme = 'light' | 'dark'
 
@@ -59,7 +61,7 @@ export function ThemeToggle() {
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      {isDark ? '☀️' : '🌙'}
+      {isDark ? <FaRegSun /> : <FaMoon />}
     </Button>
   )
 }

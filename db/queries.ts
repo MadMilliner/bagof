@@ -1,81 +1,76 @@
-import { client, migrate } from './index'
-export { client }
+import { sql, migrate } from './index'
 import { randomUUID } from 'crypto'
 import type { Item, Member, Session } from '@/types'
 
-// Run migrations on first import
+// Run migrations on first import (creates tables if they don't exist)
 await migrate()
 
 // ── Mappers ───────────────────────────────────────────────────
 
 function mapSession(row: Record<string, any>): Session {
   return {
-    id: row.id as string,
-    dmToken: row.dm_token as string,
-    name: row.name as string,
-    createdAt: row.created_at as string,
+    id: row.id,
+    dmToken: row.dm_token,
+    name: row.name,
+    createdAt: row.created_at,
   }
 }
 
 function mapMember(row: Record<string, any>): Member {
   return {
-    id: row.id as string,
-    sessionId: row.session_id as string,
-    name: row.name as string,
-    token: row.token as string,
-    publicGold: row.public_gold as number,
-    privateGold: row.private_gold as number,
-    createdAt: row.created_at as string,
+    id: row.id,
+    sessionId: row.session_id,
+    name: row.name,
+    token: row.token,
+    publicGold: row.public_gold,
+    privateGold: row.private_gold,
+    createdAt: row.created_at,
   }
 }
 
 function mapItem(row: Record<string, any>): Item {
   return {
-    id: row.id as string,
-    sessionId: row.session_id as string,
-    ownerId: row.owner_id as string | null,
-    name: row.name as string,
-    description: row.description as string,
+    id: row.id,
+    sessionId: row.session_id,
+    ownerId: row.owner_id,
+    name: row.name,
+    description: row.description,
     type: row.type as Item['type'],
     private: Boolean(row.private),
     offeredToParty: Boolean(row.offered_to_party),
-    quantity: row.quantity as number,
-    createdAt: row.created_at as string,
+    quantity: row.quantity,
+    createdAt: row.created_at,
   }
 }
 
 // ── Token resolution ──────────────────────────────────────────
 
 export async function getMemberByToken(token: string): Promise<Member | null> {
-  const result = await client.execute({
-    sql: 'SELECT * FROM members WHERE token = ? LIMIT 1',
-    args: [token],
-  })
-  return result.rows[0] ? mapMember(result.rows[0]) : null
+  const { rows } = await sql`
+    SELECT * FROM members WHERE token = ${token} LIMIT 1
+  `
+  return rows[0] ? mapMember(rows[0]) : null
 }
 
 export async function getDMSession(dmToken: string): Promise<Session | null> {
-  const result = await client.execute({
-    sql: 'SELECT * FROM sessions WHERE dm_token = ? LIMIT 1',
-    args: [dmToken],
-  })
-  return result.rows[0] ? mapSession(result.rows[0]) : null
+  const { rows } = await sql`
+    SELECT * FROM sessions WHERE dm_token = ${dmToken} LIMIT 1
+  `
+  return rows[0] ? mapSession(rows[0]) : null
 }
 
 export async function getSessionById(id: string): Promise<Session | null> {
-  const result = await client.execute({
-    sql: 'SELECT * FROM sessions WHERE id = ? LIMIT 1',
-    args: [id],
-  })
-  return result.rows[0] ? mapSession(result.rows[0]) : null
+  const { rows } = await sql`
+    SELECT * FROM sessions WHERE id = ${id} LIMIT 1
+  `
+  return rows[0] ? mapSession(rows[0]) : null
 }
 
 export async function getSessionMembers(sessionId: string): Promise<Member[]> {
-  const result = await client.execute({
-    sql: 'SELECT * FROM members WHERE session_id = ?',
-    args: [sessionId],
-  })
-  return result.rows.map(mapMember)
+  const { rows } = await sql`
+    SELECT * FROM members WHERE session_id = ${sessionId} ORDER BY created_at ASC
+  `
+  return rows.map(mapMember)
 }
 
 // ── Session creation ──────────────────────────────────────────
@@ -87,49 +82,52 @@ export async function createSession(
   const sessionId = randomUUID()
   const dmToken = randomUUID()
 
-  await client.execute({
-    sql: 'INSERT INTO sessions (id, dm_token, name) VALUES (?, ?, ?)',
-    args: [sessionId, dmToken, name],
-  })
+  const { rows: sessionRows } = await sql`
+    INSERT INTO sessions (id, dm_token, name)
+    VALUES (${sessionId}, ${dmToken}, ${name})
+    RETURNING *
+  `
 
   const createdMembers: Member[] = []
   for (const memberName of memberNames) {
     const memberId = randomUUID()
     const token = randomUUID()
-    await client.execute({
-      sql: 'INSERT INTO members (id, session_id, name, token) VALUES (?, ?, ?, ?)',
-      args: [memberId, sessionId, memberName, token],
-    })
-    createdMembers.push((await getMemberByToken(token))!)
+    const { rows: memberRows } = await sql`
+      INSERT INTO members (id, session_id, name, token)
+      VALUES (${memberId}, ${sessionId}, ${memberName}, ${token})
+      RETURNING *
+    `
+    createdMembers.push(mapMember(memberRows[0]))
   }
 
-  return { session: (await getDMSession(dmToken))!, members: createdMembers }
+  return { session: mapSession(sessionRows[0]), members: createdMembers }
 }
 
 // ── Items ─────────────────────────────────────────────────────
 
 export async function getPartyPool(sessionId: string): Promise<Item[]> {
-  const result = await client.execute({
-    sql: 'SELECT * FROM items WHERE session_id = ? AND owner_id IS NULL AND private = 0 ORDER BY created_at DESC',
-    args: [sessionId],
-  })
-  return result.rows.map(mapItem)
+  const { rows } = await sql`
+    SELECT * FROM items
+    WHERE session_id = ${sessionId}
+      AND owner_id IS NULL
+      AND private = FALSE
+    ORDER BY created_at DESC
+  `
+  return rows.map(mapItem)
 }
 
 export async function getMemberItems(memberId: string): Promise<Item[]> {
-  const result = await client.execute({
-    sql: 'SELECT * FROM items WHERE owner_id = ? ORDER BY created_at DESC',
-    args: [memberId],
-  })
-  return result.rows.map(mapItem)
+  const { rows } = await sql`
+    SELECT * FROM items WHERE owner_id = ${memberId} ORDER BY created_at DESC
+  `
+  return rows.map(mapItem)
 }
 
 export async function getAllSessionItems(sessionId: string): Promise<Item[]> {
-  const result = await client.execute({
-    sql: 'SELECT * FROM items WHERE session_id = ? ORDER BY created_at DESC',
-    args: [sessionId],
-  })
-  return result.rows.map(mapItem)
+  const { rows } = await sql`
+    SELECT * FROM items WHERE session_id = ${sessionId} ORDER BY created_at DESC
+  `
+  return rows.map(mapItem)
 }
 
 export async function addItem(data: {
@@ -142,29 +140,55 @@ export async function addItem(data: {
   quantity: number
 }): Promise<Item> {
   const id = randomUUID()
-  await client.execute({
-    sql: `INSERT INTO items (id, session_id, owner_id, name, description, type, private, offered_to_party, quantity)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`,
-    args: [id, data.sessionId, data.ownerId, data.name, data.description, data.type, data.private ? 1 : 0, data.quantity],
-  })
-  const result = await client.execute({ sql: 'SELECT * FROM items WHERE id = ?', args: [id] })
-  return mapItem(result.rows[0])
+  const { rows } = await sql`
+    INSERT INTO items (id, session_id, owner_id, name, description, type, private, offered_to_party, quantity)
+    VALUES (${id}, ${data.sessionId}, ${data.ownerId}, ${data.name}, ${data.description}, ${data.type}, ${data.private}, FALSE, ${data.quantity})
+    RETURNING *
+  `
+  return mapItem(rows[0])
 }
 
 export async function claimItem(itemId: string, memberId: string): Promise<boolean> {
-  const result = await client.execute({
-    sql: 'UPDATE items SET owner_id = ?, offered_to_party = 0 WHERE id = ? AND owner_id IS NULL',
-    args: [memberId, itemId],
-  })
-  return result.rowsAffected > 0
+  const { rowCount } = await sql`
+    UPDATE items
+    SET owner_id = ${memberId}, offered_to_party = FALSE
+    WHERE id = ${itemId} AND owner_id IS NULL
+  `
+  return (rowCount ?? 0) > 0
 }
 
 export async function offerItem(itemId: string, memberId: string): Promise<boolean> {
-  const result = await client.execute({
-    sql: 'UPDATE items SET owner_id = NULL, offered_to_party = 1, private = 0 WHERE id = ? AND owner_id = ?',
-    args: [itemId, memberId],
-  })
-  return result.rowsAffected > 0
+  const { rowCount } = await sql`
+    UPDATE items
+    SET owner_id = NULL, offered_to_party = TRUE, private = FALSE
+    WHERE id = ${itemId} AND owner_id = ${memberId}
+  `
+  return (rowCount ?? 0) > 0
+}
+
+export async function offerItemSplit(itemId: string, memberId: string): Promise<boolean> {
+  const { rows } = await sql`
+    SELECT * FROM items WHERE id = ${itemId} AND owner_id = ${memberId}
+  `
+  if (!rows[0]) return false
+
+  const existing = rows[0]
+  const qty = existing.quantity as number
+
+  if (qty > 1) {
+    await sql`DELETE FROM items WHERE id = ${itemId}`
+    for (let i = 0; i < qty; i++) {
+      const newId = randomUUID()
+      await sql`
+        INSERT INTO items (id, session_id, owner_id, name, description, type, private, offered_to_party, quantity)
+        VALUES (${newId}, ${existing.session_id}, NULL, ${existing.name}, ${existing.description}, ${existing.type}, FALSE, TRUE, 1)
+      `
+    }
+  } else {
+    await offerItem(itemId, memberId)
+  }
+
+  return true
 }
 
 export async function updateItem(
@@ -173,25 +197,34 @@ export async function updateItem(
   ownerId?: string,
   sessionId?: string
 ): Promise<boolean> {
-  const fields: string[] = []
-  const args: any[] = []
+  if (!ownerId && !sessionId) return false
 
-  if (updates.name !== undefined) { fields.push('name = ?'); args.push(updates.name) }
-  if (updates.description !== undefined) { fields.push('description = ?'); args.push(updates.description) }
-  if (updates.type !== undefined) { fields.push('type = ?'); args.push(updates.type) }
-  if (updates.private !== undefined) { fields.push('private = ?'); args.push(updates.private ? 1 : 0) }
-  if (updates.quantity !== undefined) { fields.push('quantity = ?'); args.push(updates.quantity) }
+  // Build SET clause manually since template literals don't support dynamic fields
+  // We do this safely by only accepting known field names
+  const setClauses: string[] = []
+  const values: any[] = []
 
-  if (fields.length === 0) return false
+  if (updates.name !== undefined) { setClauses.push(`name = $${values.length + 1}`); values.push(updates.name) }
+  if (updates.description !== undefined) { setClauses.push(`description = $${values.length + 1}`); values.push(updates.description) }
+  if (updates.type !== undefined) { setClauses.push(`type = $${values.length + 1}`); values.push(updates.type) }
+  if (updates.private !== undefined) { setClauses.push(`private = $${values.length + 1}`); values.push(updates.private) }
+  if (updates.quantity !== undefined) { setClauses.push(`quantity = $${values.length + 1}`); values.push(updates.quantity) }
 
-  const whereClause = ownerId ? 'id = ? AND owner_id = ?' : 'id = ? AND session_id = ?'
-  args.push(itemId, (ownerId ?? sessionId)!)
+  if (setClauses.length === 0) return false
 
-  const result = await client.execute({
-    sql: `UPDATE items SET ${fields.join(', ')} WHERE ${whereClause}`,
-    args,
-  })
-  return result.rowsAffected > 0
+  const whereField = ownerId ? 'owner_id' : 'session_id'
+  const whereValue = (ownerId ?? sessionId)!
+  values.push(itemId, whereValue)
+
+  const setStr = setClauses.join(', ')
+  const idParam = `$${values.length - 1}`
+  const whereParam = `$${values.length}`
+
+  const { rowCount } = await sql.query(
+    `UPDATE items SET ${setStr} WHERE id = ${idParam} AND ${whereField} = ${whereParam}`,
+    values
+  )
+  return (rowCount ?? 0) > 0
 }
 
 export async function deleteItem(
@@ -199,38 +232,14 @@ export async function deleteItem(
   ownerId?: string,
   sessionId?: string
 ): Promise<boolean> {
-  const whereClause = ownerId ? 'id = ? AND owner_id = ?' : 'id = ? AND session_id = ?'
-  const result = await client.execute({
-    sql: `DELETE FROM items WHERE ${whereClause}`,
-    args: [itemId, (ownerId ?? sessionId)!],
-  })
-  return result.rowsAffected > 0
-}
-
-export async function offerItemSplit(itemId: string, memberId: string): Promise<boolean> {
-  const itemRes = await client.execute({
-    sql: 'SELECT * FROM items WHERE id = ? AND owner_id = ?',
-    args: [itemId, memberId],
-  })
-  if (!itemRes.rows[0]) return false
-
-  const existing = itemRes.rows[0]
-  const qty = existing.quantity as number
-
-  if (qty > 1) {
-    await client.execute({ sql: 'DELETE FROM items WHERE id = ?', args: [itemId] })
-    for (let i = 0; i < qty; i++) {
-      await client.execute({
-        sql: `INSERT INTO items (id, session_id, owner_id, name, description, type, private, offered_to_party, quantity)
-              VALUES (?, ?, NULL, ?, ?, ?, 0, 1, 1)`,
-        args: [randomUUID(), existing.session_id, existing.name, existing.description, existing.type],
-      })
-    }
-  } else {
-    await offerItem(itemId, memberId)
-  }
-
-  return true
+  if (!ownerId && !sessionId) return false
+  const whereField = ownerId ? 'owner_id' : 'session_id'
+  const whereValue = (ownerId ?? sessionId)!
+  const { rowCount } = await sql.query(
+    `DELETE FROM items WHERE id = $1 AND ${whereField} = $2`,
+    [itemId, whereValue]
+  )
+  return (rowCount ?? 0) > 0
 }
 
 // ── Gold ──────────────────────────────────────────────────────
@@ -242,10 +251,9 @@ export async function splitGold(sessionId: string, amountCp: number): Promise<vo
   if (members.length === 0) return
   const share = Math.floor(amountCp / members.length)
   for (const m of members) {
-    await client.execute({
-      sql: 'UPDATE members SET public_gold = public_gold + ? WHERE id = ?',
-      args: [share, m.id],
-    })
+    await sql`
+      UPDATE members SET public_gold = public_gold + ${share} WHERE id = ${m.id}
+    `
   }
 }
 
@@ -257,10 +265,10 @@ export async function adjustMemberGold(
   deltaCp: number
 ): Promise<void> {
   const col = field === 'publicGold' ? 'public_gold' : 'private_gold'
-  await client.execute({
-    sql: `UPDATE members SET ${col} = MAX(0, ${col} + ?) WHERE id = ?`,
-    args: [deltaCp, memberId],
-  })
+  await sql.query(
+    `UPDATE members SET ${col} = GREATEST(0, ${col} + $1) WHERE id = $2`,
+    [deltaCp, memberId]
+  )
 }
 
 // ── Other members' public items ───────────────────────────────
@@ -274,11 +282,12 @@ export async function getOtherMembersPublicItems(
 
   const result: { member: Member; items: Item[] }[] = []
   for (const m of others) {
-    const res = await client.execute({
-      sql: 'SELECT * FROM items WHERE owner_id = ? AND private = 0 ORDER BY created_at DESC',
-      args: [m.id],
-    })
-    result.push({ member: m, items: res.rows.map(mapItem) })
+    const { rows } = await sql`
+      SELECT * FROM items
+      WHERE owner_id = ${m.id} AND private = FALSE
+      ORDER BY created_at DESC
+    `
+    result.push({ member: m, items: rows.map(mapItem) })
   }
   return result
 }

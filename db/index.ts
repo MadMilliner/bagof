@@ -1,21 +1,17 @@
-import { createClient } from '@libsql/client'
-import path from 'path'
+import { sql } from '@vercel/postgres'
 
-const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), 'bag-of.db')
-
-export const client = createClient({
-  url: `file:${DB_PATH}`,
-})
+export { sql }
 
 export async function migrate() {
-  await client.executeMultiple(`
+  await sql`
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
       dm_token TEXT NOT NULL UNIQUE,
       name TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  await sql`
     CREATE TABLE IF NOT EXISTS members (
       id TEXT PRIMARY KEY,
       session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
@@ -23,9 +19,10 @@ export async function migrate() {
       token TEXT NOT NULL UNIQUE,
       public_gold INTEGER NOT NULL DEFAULT 0,
       private_gold INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  await sql`
     CREATE TABLE IF NOT EXISTS items (
       id TEXT PRIMARY KEY,
       session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
@@ -34,16 +31,15 @@ export async function migrate() {
       description TEXT NOT NULL DEFAULT '',
       type TEXT NOT NULL DEFAULT 'Other'
         CHECK(type IN ('Weapon','Armor','Consumable','Other')),
-      private INTEGER NOT NULL DEFAULT 0,
-      offered_to_party INTEGER NOT NULL DEFAULT 0,
+      private BOOLEAN NOT NULL DEFAULT FALSE,
+      offered_to_party BOOLEAN NOT NULL DEFAULT FALSE,
       quantity INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_members_session ON members(session_id);
-    CREATE INDEX IF NOT EXISTS idx_members_token ON members(token);
-    CREATE INDEX IF NOT EXISTS idx_items_session ON items(session_id);
-    CREATE INDEX IF NOT EXISTS idx_items_owner ON items(owner_id);
-    CREATE INDEX IF NOT EXISTS idx_sessions_dm_token ON sessions(dm_token);
-  `)
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_members_session ON members(session_id)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_members_token ON members(token)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_items_session ON items(session_id)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_items_owner ON items(owner_id)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_sessions_dm_token ON sessions(dm_token)`
 }

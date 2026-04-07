@@ -20,7 +20,8 @@ export function fromCp(totalCp: number): { gp: number; sp: number; cp: number } 
   return { gp, sp, cp }
 }
 
-export function formatCurrency(totalCp: number): string {
+export function formatCurrency(totalCp: number, type: 'dnd' | 'wealth' = 'dnd'): string {
+  if (type === 'wealth') return `${totalCp} Wealth`
   if (totalCp === 0) return '0 cp'
   const { gp, sp, cp } = fromCp(totalCp)
   const parts = []
@@ -36,17 +37,22 @@ function CurrencyInput({
   label,
   onAdjust,
   loading,
+  currencyType = 'dnd'
 }: {
   label: string
   onAdjust: (deltaCp: number) => Promise<void>
   loading: boolean
+  currencyType?: 'dnd' | 'wealth'
 }) {
   const [gp, setGp] = useState('')
   const [sp, setSp] = useState('')
   const [cp, setCp] = useState('')
 
-  const hasValue = gp !== '' || sp !== '' || cp !== ''
-  const deltaCp = toCp(parseFloat(gp) || 0, parseFloat(sp) || 0, parseFloat(cp) || 0)
+  const deltaCp = currencyType === 'wealth'
+    ? (parseFloat(cp) || 0)
+    : toCp(parseFloat(gp) || 0, parseFloat(sp) || 0, parseFloat(cp) || 0)
+  
+  const hasValue = currencyType === 'wealth' ? cp !== '' : (gp !== '' || sp !== '' || cp !== '')
 
   const handle = async (sign: 1 | -1) => {
     if (!hasValue || deltaCp === 0) return
@@ -57,41 +63,55 @@ function CurrencyInput({
   return (
     <div className="space-y-2">
       <p className="font-press-start text-[10px] text-muted-foreground">{label}</p>
-      <div className="flex gap-1 items-center flex-wrap">
-        <div className="flex items-center gap-1">
-          <Input
-            type="number"
-            min={0}
-            placeholder="0"
-            value={gp}
-            onChange={e => setGp(e.target.value)}
-            className="w-14 text-center"
-          />
-          <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400">gp</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Input
-            type="number"
-            min={0}
-            placeholder="0"
-            value={sp}
-            onChange={e => setSp(e.target.value)}
-            className="w-14 text-center"
-          />
-          <span className="font-press-start text-[10px] text-slate-400">sp</span>
-        </div>
-        <div className="flex items-center gap-1">
+      {currencyType === 'wealth' ? (
+        <div className="flex gap-1 items-center">
           <Input
             type="number"
             min={0}
             placeholder="0"
             value={cp}
             onChange={e => setCp(e.target.value)}
-            className="w-14 text-center"
+            className="w-20 text-center"
           />
-          <span className="font-press-start text-[10px] text-orange-600 dark:text-orange-400">cp</span>
+          <span className="font-press-start text-[10px] text-muted-foreground">Wealth</span>
         </div>
-      </div>
+      ) : (
+        <div className="flex gap-1 items-center flex-wrap">
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              min={0}
+              placeholder="0"
+              value={gp}
+              onChange={e => setGp(e.target.value)}
+              className="w-20 text-center"
+            />
+            <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400">gp</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              min={0}
+              placeholder="0"
+              value={sp}
+              onChange={e => setSp(e.target.value)}
+              className="w-20 text-center"
+            />
+            <span className="font-press-start text-[10px] text-slate-400">sp</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              min={0}
+              placeholder="0"
+              value={cp}
+              onChange={e => setCp(e.target.value)}
+              className="w-20 text-center"
+            />
+            <span className="font-press-start text-[10px] text-orange-600 dark:text-orange-400">cp</span>
+          </div>
+        </div>
+      )}
       <div className="flex gap-2">
         <Button
           size="sm"
@@ -111,7 +131,7 @@ function CurrencyInput({
         </Button>
         {deltaCp > 0 && (
           <span className="font-press-start text-[10px] text-muted-foreground self-center">
-            = {formatCurrency(deltaCp)}
+            = {formatCurrency(deltaCp, currencyType)}
           </span>
         )}
       </div>
@@ -127,6 +147,9 @@ interface GoldPanelProps {
   showPrivate?: boolean
   isDM?: boolean
   memberCount?: number
+  currencyType?: 'dnd' | 'wealth'
+  titleOverride?: string
+  hideHeader?: boolean
   onAdjustPublic?: (deltaCp: number) => Promise<void>
   onAdjustPrivate?: (deltaCp: number) => Promise<void>
   onSplitGold?: (amountCp: number) => Promise<void>
@@ -138,6 +161,9 @@ export function GoldPanel({
   showPrivate = false,
   isDM = false,
   memberCount = 1,
+  currencyType = 'dnd',
+  titleOverride,
+  hideHeader = false,
   onAdjustPublic,
   onAdjustPrivate,
   onSplitGold,
@@ -147,7 +173,10 @@ export function GoldPanel({
   const [splitSp, setSplitSp] = useState('')
   const [splitCp, setSplitCp] = useState('')
 
-  const splitTotalCp = toCp(parseFloat(splitGp) || 0, parseFloat(splitSp) || 0, parseFloat(splitCp) || 0)
+  const splitTotalCp = currencyType === 'wealth'
+    ? (parseFloat(splitCp) || 0)
+    : toCp(parseFloat(splitGp) || 0, parseFloat(splitSp) || 0, parseFloat(splitCp) || 0)
+    
   const perMemberCp = splitTotalCp > 0 ? Math.floor(splitTotalCp / memberCount) : 0
 
   const wrap = async (fn: () => Promise<void>) => {
@@ -163,26 +192,28 @@ export function GoldPanel({
 
   return (
     <Card className="mb-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xs">🪙 Coin Purse</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+      {!hideHeader && (
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xs">🪙 {titleOverride || 'Coin Purse'}</CardTitle>
+        </CardHeader>
+      )}
+      <CardContent className={hideHeader ? 'pt-4 space-y-4' : 'space-y-4'}>
 
         {/* ── Balances ── */}
         <div className="flex gap-4 flex-wrap">
           <div className="flex-1 min-w-[120px]">
             <p className="font-press-start text-[10px] text-muted-foreground mb-1">
-              {isDM ? 'Total Party Gold' : 'Public Gold'}
+              {titleOverride ? titleOverride : (isDM ? 'Total Party Gold' : 'Public Gold')}
             </p>
             <p className="font-press-start text-base text-yellow-600 dark:text-yellow-400 leading-tight">
-              {formatCurrency(publicGold)}
+              {formatCurrency(publicGold, currencyType)}
             </p>
           </div>
           {showPrivate && (
             <div className="flex-1 min-w-[120px]">
               <p className="font-press-start text-[10px] text-muted-foreground mb-1">🔒 Private Gold</p>
               <p className="font-press-start text-base leading-tight">
-                {formatCurrency(privateGold)}
+                {formatCurrency(privateGold, currencyType)}
               </p>
             </div>
           )}
@@ -192,9 +223,10 @@ export function GoldPanel({
         {!isDM && onAdjustPublic && (
           <div className="border-t-2 border-black dark:border-white pt-3">
             <CurrencyInput
-              label="Adjust Public Gold"
+              label={titleOverride ? `Adjust ${titleOverride}` : "Adjust Public Gold"}
               onAdjust={deltaCp => wrap(() => onAdjustPublic(deltaCp))}
               loading={loading}
+              currencyType={currencyType}
             />
           </div>
         )}
@@ -206,6 +238,7 @@ export function GoldPanel({
               label="Adjust Private Gold"
               onAdjust={deltaCp => wrap(() => onAdjustPrivate(deltaCp))}
               loading={loading}
+              currencyType={currencyType}
             />
           </div>
         )}
@@ -214,26 +247,34 @@ export function GoldPanel({
         {isDM && onSplitGold && (
           <div className="border-t-2 border-black dark:border-white pt-3 space-y-2">
             <p className="font-press-start text-[10px] text-muted-foreground">Split Gold Evenly</p>
-            <div className="flex gap-1 items-center flex-wrap">
-              <div className="flex items-center gap-1">
-                <Input type="number" min={0} placeholder="0" value={splitGp}
-                  onChange={e => setSplitGp(e.target.value)} className="w-14 text-center" />
-                <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400">gp</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Input type="number" min={0} placeholder="0" value={splitSp}
-                  onChange={e => setSplitSp(e.target.value)} className="w-14 text-center" />
-                <span className="font-press-start text-[10px] text-slate-400">sp</span>
-              </div>
-              <div className="flex items-center gap-1">
+            {currencyType === 'wealth' ? (
+              <div className="flex gap-1 items-center">
                 <Input type="number" min={0} placeholder="0" value={splitCp}
-                  onChange={e => setSplitCp(e.target.value)} className="w-14 text-center" />
-                <span className="font-press-start text-[10px] text-orange-600 dark:text-orange-400">cp</span>
+                  onChange={e => setSplitCp(e.target.value)} className="w-20 text-center" />
+                <span className="font-press-start text-[10px] text-muted-foreground">Wealth</span>
               </div>
-            </div>
+            ) : (
+              <div className="flex gap-1 items-center flex-wrap">
+                <div className="flex items-center gap-1">
+                  <Input type="number" min={0} placeholder="0" value={splitGp}
+                    onChange={e => setSplitGp(e.target.value)} className="w-20 text-center" />
+                  <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400">gp</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Input type="number" min={0} placeholder="0" value={splitSp}
+                    onChange={e => setSplitSp(e.target.value)} className="w-20 text-center" />
+                  <span className="font-press-start text-[10px] text-slate-400">sp</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Input type="number" min={0} placeholder="0" value={splitCp}
+                    onChange={e => setSplitCp(e.target.value)} className="w-20 text-center" />
+                  <span className="font-press-start text-[10px] text-orange-600 dark:text-orange-400">cp</span>
+                </div>
+              </div>
+            )}
             {perMemberCp > 0 && (
               <p className="font-press-start text-[10px] text-muted-foreground">
-                = {formatCurrency(perMemberCp)} each ({memberCount} members)
+                = {formatCurrency(perMemberCp, currencyType)} each ({memberCount} members)
               </p>
             )}
             <Button

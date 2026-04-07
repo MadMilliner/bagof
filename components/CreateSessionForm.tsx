@@ -13,6 +13,7 @@ type Step = 'form' | 'links'
 export function CreateSessionForm() {
   const [step, setStep] = useState<Step>('form')
   const [sessionName, setSessionName] = useState('')
+  const [currencyType, setCurrencyType] = useState<'dnd' | 'wealth'>('dnd')
   const [memberNames, setMemberNames] = useState(['', ''])
   const [result, setResult] = useState<CreateSessionResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -38,7 +39,7 @@ export function CreateSessionForm() {
       const res = await fetch('/api/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionName: sessionName.trim(), memberNames: cleaned }),
+        body: JSON.stringify({ sessionName: sessionName.trim(), currencyType, memberNames: cleaned }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
@@ -157,6 +158,18 @@ export function CreateSessionForm() {
               value={sessionName}
               onChange={e => setSessionName(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="font-press-start text-[10px]">Currency System</label>
+            <select
+              className="font-press-start text-[10px] w-full border-2 border-black dark:border-white bg-background px-2 py-2"
+              value={currencyType}
+              onChange={e => setCurrencyType(e.target.value as 'dnd' | 'wealth')}
+            >
+              <option value="dnd">Traditional (GP / SP / CP)</option>
+              <option value="wealth">Abstract Wealth (Single Number)</option>
+            </select>
           </div>
 
           <div className="space-y-2">

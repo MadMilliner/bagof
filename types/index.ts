@@ -27,11 +27,14 @@ export interface Session {
   id: string
   dmToken: string
   name: string
+  currencyType: 'dnd' | 'wealth'
+  partyGold: number
   createdAt: string
 }
 
 export interface CreateSessionPayload {
   sessionName: string
+  currencyType: 'dnd' | 'wealth'
   memberNames: string[]
 }
 

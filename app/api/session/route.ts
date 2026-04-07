@@ -4,7 +4,7 @@ import type { CreateSessionResponse } from '@/types'
 
 export async function POST(req: NextRequest) {
   try {
-    const { sessionName, memberNames } = await req.json()
+    const { sessionName, memberNames, currencyType } = await req.json()
 
     if (!sessionName?.trim())
       return NextResponse.json({ error: 'Campaign name required' }, { status: 400 })
@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
     if (cleaned.length === 0)
       return NextResponse.json({ error: 'At least one member required' }, { status: 400 })
 
-    const { session, members } = await createSession(sessionName.trim(), cleaned)
-    const base = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
+    const { session, members } = await createSession(sessionName.trim(), currencyType || 'dnd', cleaned)
+    const base = req.headers.get('origin') ?? req.nextUrl.origin
 
     const response: CreateSessionResponse = {
       session,

@@ -4,6 +4,7 @@ import {
   getMemberByToken,
   splitGold,
   adjustMemberGold,
+  adjustPartyGold,
 } from '@/db/queries'
 
 // All gold stored as copper pieces (cp)
@@ -35,6 +36,13 @@ export async function PATCH(req: NextRequest) {
         await adjustMemberGold(memberId, field === 'privateGold' ? 'privateGold' : 'publicGold', deltaCp)
         return NextResponse.json({ success: true })
       }
+
+      if (action === 'party_adjust') {
+        const { deltaCp } = body
+        if (typeof deltaCp !== 'number') return NextResponse.json({ error: 'deltaCp required' }, { status: 400 })
+        await adjustPartyGold(session.id, deltaCp)
+        return NextResponse.json({ success: true })
+      }
     }
 
     if (token) {
@@ -48,6 +56,13 @@ export async function PATCH(req: NextRequest) {
           return NextResponse.json({ error: 'deltaCp required' }, { status: 400 })
         const goldField = field === 'privateGold' ? 'privateGold' : 'publicGold'
         await adjustMemberGold(member.id, goldField, deltaCp)
+        return NextResponse.json({ success: true })
+      }
+
+      if (action === 'party_adjust') {
+        const { deltaCp } = body
+        if (typeof deltaCp !== 'number') return NextResponse.json({ error: 'deltaCp required' }, { status: 400 })
+        await adjustPartyGold(member.sessionId, deltaCp)
         return NextResponse.json({ success: true })
       }
     }

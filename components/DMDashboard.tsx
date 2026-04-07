@@ -27,6 +27,7 @@ export function DMDashboard({
 }: DMDashboardProps) {
   const [allItems, setAllItems] = useState<Item[]>(initialItems)
   const [members, setMembers] = useState<Member[]>(initialMembers)
+  const [partyGold, setPartyGold] = useState(session.partyGold)
   const [loading, setLoading] = useState(false)
 
   const partyPool = allItems.filter(i => !i.ownerId)
@@ -82,9 +83,20 @@ export function DMDashboard({
       body: JSON.stringify({ dmToken, action: 'give', memberId, deltaCp, field }),
     })
     if (!res.ok) return
+    if (!res.ok) return
     setMembers(prev => prev.map(m =>
       m.id === memberId ? { ...m, [field]: Math.max(0, m[field] + deltaCp) } : m
     ))
+  }
+
+  const adjustPartyGold = async (deltaCp: number) => {
+    const res = await fetch('/api/gold', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dmToken, action: 'party_adjust', deltaCp }),
+    })
+    if (!res.ok) return
+    setPartyGold(prev => Math.max(0, prev + deltaCp))
   }
 
   // ── Render ────────────────────────────────────────────────
@@ -119,6 +131,13 @@ export function DMDashboard({
 
         {/* ── Party Pool ── */}
         <TabsContent value="pool">
+          <GoldPanel
+            publicGold={partyGold}
+            isDM
+            currencyType={session.currencyType}
+            titleOverride={session.currencyType === 'wealth' ? "Party Bag Wealth" : "Party Bag Gold"}
+            onAdjustPublic={adjustPartyGold}
+          />
           <AddItemForm
             onAdd={addToPool}
             isLoading={loading}
@@ -180,13 +199,15 @@ export function DMDashboard({
             publicGold={totalGold}
             isDM
             memberCount={members.length}
+            currencyType={session.currencyType}
+            titleOverride={session.currencyType === 'wealth' ? "Total Distributed Wealth" : "Total Distributed Gold"}
             onSplitGold={splitGold}
           />
 
           <div className="space-y-3">
-            <p className="font-press-start text-xs mb-3">Give Gold Directly</p>
+            <p className="font-press-start text-xs mb-3">Give Currency Directly</p>
             {members.map(m => (
-              <GiveMemberGold key={m.id} member={m} onGive={giveGold} />
+              <GiveMemberGold key={m.id} member={m} onGive={giveGold} currencyType={session.currencyType} />
             ))}
           </div>
         </TabsContent>
@@ -200,9 +221,11 @@ export function DMDashboard({
 function GiveMemberGold({
   member,
   onGive,
+  currencyType
 }: {
   member: Member
   onGive: (id: string, deltaCp: number, field: 'publicGold' | 'privateGold') => Promise<void>
+  currencyType: 'dnd' | 'wealth'
 }) {
   const [gp, setGp] = useState('')
   const [sp, setSp] = useState('')
@@ -210,8 +233,11 @@ function GiveMemberGold({
   const [field, setField] = useState<'publicGold' | 'privateGold'>('publicGold')
   const [loading, setLoading] = useState(false)
 
-  const deltaCp = Math.round((parseFloat(gp) || 0) * 100 + (parseFloat(sp) || 0) * 10 + (parseFloat(cp) || 0))
-  const hasValue = gp !== '' || sp !== '' || cp !== ''
+  const deltaCp = currencyType === 'wealth'
+    ? (parseFloat(cp) || 0)
+    : Math.round((parseFloat(gp) || 0) * 100 + (parseFloat(sp) || 0) * 10 + (parseFloat(cp) || 0))
+    
+  const hasValue = currencyType === 'wealth' ? cp !== '' : (gp !== '' || sp !== '' || cp !== '')
 
   const handle = async (sign: 1 | -1) => {
     if (!hasValue || deltaCp === 0) return
@@ -222,6 +248,7 @@ function GiveMemberGold({
   }
 
   const publicDisplay = (() => {
+    if (currencyType === 'wealth') return `${member.publicGold} W`
     const g = Math.floor(member.publicGold / 100)
     const s = Math.floor((member.publicGold % 100) / 10)
     const c = member.publicGold % 10
@@ -235,22 +262,34 @@ function GiveMemberGold({
           <span className="font-press-start text-[10px] font-bold">{member.name}</span>
           <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400">{publicDisplay}</span>
         </div>
-        <div className="flex gap-1 items-center flex-wrap">
-          <div className="flex items-center gap-1">
-            <Input type="number" min={0} placeholder="0" value={gp}
-              onChange={e => setGp(e.target.value)} className="w-12 text-center" />
-            <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400">gp</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Input type="number" min={0} placeholder="0" value={sp}
-              onChange={e => setSp(e.target.value)} className="w-12 text-center" />
-            <span className="font-press-start text-[10px] text-slate-400">sp</span>
-          </div>
-          <div className="flex items-center gap-1">
+        
+        {currencyType === 'wealth' ? (
+          <div className="flex gap-1 items-center">
             <Input type="number" min={0} placeholder="0" value={cp}
-              onChange={e => setCp(e.target.value)} className="w-12 text-center" />
-            <span className="font-press-start text-[10px] text-orange-600 dark:text-orange-400">cp</span>
+              onChange={e => setCp(e.target.value)} className="w-20 text-center" />
+            <span className="font-press-start text-[10px] text-muted-foreground mt-1">Wealth</span>
           </div>
+        ) : (
+          <div className="flex gap-1 items-center flex-wrap">
+            <div className="flex items-center gap-1">
+              <Input type="number" min={0} placeholder="0" value={gp}
+                onChange={e => setGp(e.target.value)} className="w-20 text-center" />
+              <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400">gp</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Input type="number" min={0} placeholder="0" value={sp}
+                onChange={e => setSp(e.target.value)} className="w-20 text-center" />
+              <span className="font-press-start text-[10px] text-slate-400">sp</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Input type="number" min={0} placeholder="0" value={cp}
+                onChange={e => setCp(e.target.value)} className="w-20 text-center" />
+              <span className="font-press-start text-[10px] text-orange-600 dark:text-orange-400">cp</span>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex gap-1 items-center mb-2">
           <select
             className="font-press-start text-[10px] border-2 border-black dark:border-white bg-background px-1 py-1 h-9"
             value={field}

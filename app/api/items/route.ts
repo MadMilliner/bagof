@@ -97,11 +97,11 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (action === 'offer') {
-  if (!memberId) return NextResponse.json({ error: 'Only members can offer' }, { status: 403 })
-  const ok = await offerItemSplit(itemId, memberId)
-  if (!ok) return NextResponse.json({ error: 'Item not found' }, { status: 404 })
-  return NextResponse.json({ success: true })
-}
+      if (!memberId) return NextResponse.json({ error: 'Only members can offer' }, { status: 403 })
+      const items = await offerItemSplit(itemId, memberId)
+      if (!items) return NextResponse.json({ error: 'Item not found' }, { status: 404 })
+      return NextResponse.json({ success: true, items })
+    }
 
     if (action === 'update') {
       await updateItem(

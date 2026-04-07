@@ -12,6 +12,8 @@ function mapSession(row: Record<string, any>): Session {
     id: row.id,
     dmToken: row.dm_token,
     name: row.name,
+    currencyType: row.currency_type,
+    partyGold: row.party_gold,
     createdAt: row.created_at,
   }
 }
@@ -77,14 +79,15 @@ export async function getSessionMembers(sessionId: string): Promise<Member[]> {
 
 export async function createSession(
   name: string,
+  currencyType: 'dnd' | 'wealth',
   memberNames: string[]
 ): Promise<{ session: Session; members: Member[] }> {
   const sessionId = randomUUID()
   const dmToken = randomUUID()
 
   const { rows: sessionRows } = await sql`
-    INSERT INTO sessions (id, dm_token, name)
-    VALUES (${sessionId}, ${dmToken}, ${name})
+    INSERT INTO sessions (id, dm_token, name, currency_type)
+    VALUES (${sessionId}, ${dmToken}, ${name}, ${currencyType})
     RETURNING *
   `
 
@@ -166,29 +169,34 @@ export async function offerItem(itemId: string, memberId: string): Promise<boole
   return (rowCount ?? 0) > 0
 }
 
-export async function offerItemSplit(itemId: string, memberId: string): Promise<boolean> {
+export async function offerItemSplit(itemId: string, memberId: string): Promise<Item[] | null> {
   const { rows } = await sql`
     SELECT * FROM items WHERE id = ${itemId} AND owner_id = ${memberId}
   `
-  if (!rows[0]) return false
+  if (!rows[0]) return null
 
   const existing = rows[0]
   const qty = existing.quantity as number
+  const newItems: Item[] = []
 
   if (qty > 1) {
     await sql`DELETE FROM items WHERE id = ${itemId}`
     for (let i = 0; i < qty; i++) {
       const newId = randomUUID()
-      await sql`
+      const { rows: inserted } = await sql`
         INSERT INTO items (id, session_id, owner_id, name, description, type, private, offered_to_party, quantity)
         VALUES (${newId}, ${existing.session_id}, NULL, ${existing.name}, ${existing.description}, ${existing.type}, FALSE, TRUE, 1)
+        RETURNING *
       `
+      newItems.push(mapItem(inserted[0]))
     }
   } else {
     await offerItem(itemId, memberId)
+    const { rows: updated } = await sql`SELECT * FROM items WHERE id = ${itemId}`
+    newItems.push(mapItem(updated[0]))
   }
 
-  return true
+  return newItems
 }
 
 export async function updateItem(
@@ -268,6 +276,13 @@ export async function adjustMemberGold(
   await sql.query(
     `UPDATE members SET ${col} = GREATEST(0, ${col} + $1) WHERE id = $2`,
     [deltaCp, memberId]
+  )
+}
+
+export async function adjustPartyGold(sessionId: string, deltaCp: number): Promise<void> {
+  await sql.query(
+    `UPDATE sessions SET party_gold = GREATEST(0, party_gold + $1) WHERE id = $2`,
+    [deltaCp, sessionId]
   )
 }
 

@@ -61,7 +61,7 @@ export function ThemeToggle() {
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      {isDark ? <FaRegSun /> : <FaMoon />}
+      {isDark ? <FaMoon /> : <FaRegSun />}
     </Button>
   )
 }

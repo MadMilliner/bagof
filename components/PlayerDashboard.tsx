@@ -34,7 +34,7 @@ export function PlayerDashboard({
 }: PlayerDashboardProps) {
   const [myItems, setMyItems] = useState<Item[]>(initialMyItems)
   const [partyPool, setPartyPool] = useState<Item[]>(initialPartyPool)
-  const [gold, setGold] = useState({ public: member.publicGold, private: member.privateGold })
+  const [gold, setGold] = useState({ public: member.publicGold, private: member.privateGold, party: session.partyGold })
   // gold values are in copper pieces (cp)
   const [loading, setLoading] = useState(false)
 
@@ -76,17 +76,10 @@ export function PlayerDashboard({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: memberToken, itemId: item.id, action: 'offer' }),
     })
+    const data = await res.json()
     if (!res.ok) return
     setMyItems(prev => prev.filter(i => i.id !== item.id))
-    // Server splits into individual items; we optimistically show one per qty
-    const singles = Array.from({ length: item.quantity }, (_, idx) => ({
-      ...item,
-      id: `${item.id}-opt-${idx}`,
-      ownerId: null,
-      private: false,
-      quantity: 1,
-    }))
-    setPartyPool(prev => [...singles, ...prev])
+    setPartyPool(prev => [...data.items, ...prev])
   }
 
   const togglePrivate = async (item: Item) => {
@@ -125,6 +118,16 @@ export function PlayerDashboard({
     setGold(prev => ({ ...prev, [key]: Math.max(0, prev[key] + deltaCp) }))
   }
 
+  const adjustPartyGold = async (deltaCp: number) => {
+    const res = await fetch('/api/gold', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: memberToken, action: 'party_adjust', deltaCp }),
+    })
+    if (!res.ok) return
+    setGold(prev => ({ ...prev, party: Math.max(0, prev.party + deltaCp) }))
+  }
+
   const totalOtherItems = initialOtherMembers.reduce((s, o) => s + o.items.length, 0)
 
   // ── Render ────────────────────────────────────────────────
@@ -145,14 +148,6 @@ export function PlayerDashboard({
         </div>
       </header>
 
-      <GoldPanel
-        publicGold={gold.public}
-        privateGold={gold.private}
-        showPrivate
-        onAdjustPublic={deltaCp => adjustGold(deltaCp, 'publicGold')}
-        onAdjustPrivate={deltaCp => adjustGold(deltaCp, 'privateGold')}
-      />
-
       <Tabs defaultValue="inventory">
         <TabsList>
           <TabsTrigger value="inventory">My Inventory</TabsTrigger>
@@ -165,6 +160,14 @@ export function PlayerDashboard({
         </TabsList>
 
         <TabsContent value="inventory">
+          <GoldPanel
+            publicGold={gold.public}
+            privateGold={gold.private}
+            showPrivate
+            currencyType={session.currencyType}
+            onAdjustPublic={deltaCp => adjustGold(deltaCp, 'publicGold')}
+            onAdjustPrivate={deltaCp => adjustGold(deltaCp, 'privateGold')}
+          />
           <AddItemForm onAdd={addItem} isLoading={loading} showPrivateToggle />
           <div className="space-y-2">
             {myItems.length === 0 ? (
@@ -187,6 +190,12 @@ export function PlayerDashboard({
         </TabsContent>
 
         <TabsContent value="pool">
+          <GoldPanel
+            publicGold={gold.party}
+            currencyType={session.currencyType}
+            titleOverride={session.currencyType === 'wealth' ? "Party Bag Wealth" : "Party Bag Gold"}
+            onAdjustPublic={adjustPartyGold}
+          />
           <div className="space-y-2">
             {partyPool.length === 0 ? (
               <p className="font-press-start text-[10px] text-muted-foreground text-center py-8">

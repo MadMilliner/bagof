@@ -77,15 +77,16 @@ export function ItemCard({
 }: ItemCardProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [draftDesc, setDraftDesc] = useState(item.description)
+  const [draftType, setDraftType] = useState<Item['type']>(item.type)
   const [diceNotation, setDiceNotation] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   const isInPool = item.ownerId === null
 
   const handleSave = async () => {
-    if (onUpdate && draftDesc !== item.description) {
+    if (onUpdate && (draftDesc !== item.description || draftType !== item.type)) {
       setSaving(true)
-      await onUpdate(item, { description: draftDesc })
+      await onUpdate(item, { description: draftDesc, type: draftType })
       setSaving(false)
     }
     setIsEditing(false)
@@ -93,6 +94,7 @@ export function ItemCard({
 
   const handleCancel = () => {
     setDraftDesc(item.description)
+    setDraftType(item.type)
     setIsEditing(false)
   }
 
@@ -127,7 +129,17 @@ export function ItemCard({
                   </div>
                 )
               ) : (
-                <div className="mb-2 space-y-2">
+                <div className="mb-2 space-y-2 pt-2">
+                  <select
+                    className="font-press-start text-[10px] w-full border-2 border-black dark:border-white bg-background px-2 py-2"
+                    value={draftType}
+                    onChange={e => setDraftType(e.target.value as Item['type'])}
+                  >
+                    <option value="Weapon">Weapon</option>
+                    <option value="Armor">Armor</option>
+                    <option value="Consumable">Consumable</option>
+                    <option value="Other">Other</option>
+                  </select>
                   <Textarea
                     value={draftDesc}
                     onChange={e => setDraftDesc(e.target.value)}

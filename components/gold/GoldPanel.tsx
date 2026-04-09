@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { Button } from '@/components/ui/8bit/button'
 import { Input } from '@/components/ui/8bit/input'
+import { GiTwoCoins } from "react-icons/gi";
+
 
 // ── Currency helpers ──────────────────────────────────────────
 // All gold stored internally as copper pieces (cp)
@@ -194,7 +196,7 @@ export function GoldPanel({
     <Card className="mb-4">
       {!hideHeader && (
         <CardHeader className="pb-2">
-          <CardTitle className="text-xs">🪙 {titleOverride || 'Coin Purse'}</CardTitle>
+          <CardTitle className="text-xs"><GiTwoCoins size={20}/> {titleOverride || 'Coin Purse'}</CardTitle>
         </CardHeader>
       )}
       <CardContent className={hideHeader ? 'pt-4 space-y-4' : 'space-y-4'}>

@@ -63,3 +63,9 @@
     font-family: var(--font-press-start), monospace;
   }
 }
+
+div input:focus {
+  /* box-shadow: var(--accent 5px 5px 5px); */
+  /* border: silver .3rem solid; */
+  filter: contrast(75%);
+}

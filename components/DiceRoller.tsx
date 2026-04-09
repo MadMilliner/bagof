@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/8bit/card'
 import { Button } from '@/components/ui/8bit/button'
+import { FaDiceD20 } from "react-icons/fa6";
 
 interface DiceRollerProps {
   notation: string
@@ -54,7 +55,7 @@ export function DiceRollerPopup({ notation, onClose }: DiceRollerProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <Card className="w-full max-w-sm shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
         <CardHeader className="flex flex-row items-center justify-between pb-2 border-b-2 border-black dark:border-white">
-          <CardTitle className="text-sm">🎲 Rolling {notation}</CardTitle>
+          <CardTitle className="text-sm"><FaDiceD20/> Rolling {notation}</CardTitle>
           <Button variant="outline" size="sm" onClick={onClose} className="h-6 px-2 text-[10px]">✕</Button>
         </CardHeader>
         <CardContent className="space-y-4 pt-4 text-center">
@@ -68,7 +69,7 @@ export function DiceRollerPopup({ notation, onClose }: DiceRollerProps) {
 
           <div className="pt-2">
             <Button variant="secondary" className="w-full" onClick={handleReroll}>
-              Reroll 🎲
+              Reroll <FaDiceD20/>
             </Button>
           </div>
         </CardContent>

@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/8bit/button'
 import { Textarea } from '@/components/ui/8bit/textarea'
 import { DiceRollerPopup } from '@/components/DiceRoller'
 import type { Item } from '@/types'
+import type { IconType } from 'react-icons'
+import { GiAxeSword } from "react-icons/gi";
+import { FaShieldHalved } from "react-icons/fa6";
+import { GiStandingPotion } from "react-icons/gi";
+import { GiRopeCoil } from "react-icons/gi";
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g
 const DICE_REGEX = /\b(\d+d\d+(?:[+-]\d+)?)\b/gi
@@ -40,11 +45,11 @@ function formatDescription(text: string, onDiceClick: (notation: string) => void
   })
 }
 
-const TYPE_ICONS: Record<Item['type'], string> = {
-  Weapon: '⚔️',
-  Armor: '🛡️',
-  Consumable: '🧪',
-  Other: '📦',
+const TYPE_ICONS: Record<Item['type'], React.ReactElement> = {
+  Weapon: <GiAxeSword/>,
+  Armor: <FaShieldHalved />,
+  Consumable: <GiStandingPotion />,
+  Other: <GiRopeCoil />,
 }
 
 const TYPE_VARIANT: Record<Item['type'], 'default' | 'secondary' | 'destructive' | 'outline'> = {

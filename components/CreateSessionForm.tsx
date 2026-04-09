@@ -76,7 +76,7 @@ export function CreateSessionForm() {
       <div className="w-full max-w-lg space-y-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <h1 className="font-press-start text-lg">🎲 Session Ready!</h1>
+            <h1 className="font-press-start text-lg"><span className="text-2xl">🎒</span> Session Ready!</h1>
             <p className="font-press-start text-[10px] text-muted-foreground leading-relaxed">
               Share each link. These never expire.
             </p>

@@ -10,12 +10,14 @@ import { GoldPanel, CurrencyInput, formatCurrency } from '@/components/gold/Gold
 import { ThemeToggle } from '@/components/ThemeProvider'
 import type { Item, Member, Session, ItemType } from '@/types'
 
-interface OtherMember {
+interface OtherMember
+{
   member: Member
   items: Item[]
 }
 
-interface PlayerDashboardProps {
+interface PlayerDashboardProps
+{
   session: Session
   member: Member
   memberToken: string
@@ -31,10 +33,13 @@ export function PlayerDashboard({
   initialMyItems,
   initialPartyPool,
   initialOtherMembers,
-}: PlayerDashboardProps) {
+}: PlayerDashboardProps)
+{
   const [myItems, setMyItems] = useState<Item[]>(initialMyItems)
   const [partyPool, setPartyPool] = useState<Item[]>(initialPartyPool)
   const [gold, setGold] = useState({ public: member.publicGold, private: member.privateGold, party: session.partyGold })
+  const [memberName, setMemberName] = useState(member.name)
+  const [isEditingName, setIsEditingName] = useState(false)
   // gold values are in copper pieces (cp)
   const [loading, setLoading] = useState(false)
 
@@ -42,7 +47,8 @@ export function PlayerDashboard({
 
   const addItem = async (itemData: {
     name: string; description: string; type: ItemType; quantity: number; private: boolean
-  }) => {
+  }) =>
+  {
     setLoading(true)
     try {
       const res = await fetch('/api/items', {
@@ -58,7 +64,8 @@ export function PlayerDashboard({
     }
   }
 
-  const claimItem = async (item: Item) => {
+  const claimItem = async (item: Item) =>
+  {
     const res = await fetch('/api/items', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -70,7 +77,8 @@ export function PlayerDashboard({
   }
 
   // Offer to party: if qty > 1, creates N separate items server-side
-  const offerItem = async (item: Item) => {
+  const offerItem = async (item: Item) =>
+  {
     const res = await fetch('/api/items', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -82,7 +90,8 @@ export function PlayerDashboard({
     setPartyPool(prev => [...data.items, ...prev])
   }
 
-  const togglePrivate = async (item: Item) => {
+  const togglePrivate = async (item: Item) =>
+  {
     const res = await fetch('/api/items', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -97,7 +106,8 @@ export function PlayerDashboard({
     setMyItems(prev => prev.map(i => i.id === item.id ? { ...i, private: !i.private } : i))
   }
 
-  const updateItemAction = async (item: Item, updates: Partial<Item>) => {
+  const updateItemAction = async (item: Item, updates: Partial<Item>) =>
+  {
     const res = await fetch('/api/items', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -107,7 +117,8 @@ export function PlayerDashboard({
     setMyItems(prev => prev.map(i => i.id === item.id ? { ...i, ...updates } : i))
   }
 
-  const deleteItem = async (item: Item) => {
+  const deleteItem = async (item: Item) =>
+  {
     const res = await fetch('/api/items', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -117,7 +128,8 @@ export function PlayerDashboard({
     setMyItems(prev => prev.filter(i => i.id !== item.id))
   }
 
-  const adjustGold = async (deltaCp: number, field: 'publicGold' | 'privateGold') => {
+  const adjustGold = async (deltaCp: number, field: 'publicGold' | 'privateGold') =>
+  {
     const res = await fetch('/api/gold', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -128,7 +140,8 @@ export function PlayerDashboard({
     setGold(prev => ({ ...prev, [key]: Math.max(0, prev[key] + deltaCp) }))
   }
 
-  const adjustPartyGold = async (deltaCp: number) => {
+  const adjustPartyGold = async (deltaCp: number) =>
+  {
     const res = await fetch('/api/gold', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -138,16 +151,42 @@ export function PlayerDashboard({
     setGold(prev => ({ ...prev, party: Math.max(0, prev.party + deltaCp) }))
   }
 
-  const transferToPool = async (amount: number) => {
+  const transferToPool = async (amount: number) =>
+  {
     if (amount <= 0 || amount > gold.public) return
     await adjustGold(-amount, 'publicGold')
     await adjustPartyGold(amount)
   }
 
-  const transferFromPool = async (amount: number) => {
+  const transferFromPool = async (amount: number) =>
+  {
     if (amount <= 0 || amount > gold.party) return
     await adjustPartyGold(-amount)
     await adjustGold(amount, 'publicGold')
+  }
+
+  const updateName = async () => {
+    if (!memberName.trim() || memberName === member.name) {
+      setIsEditingName(false)
+      setMemberName(member.name)
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await fetch('/api/members', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: memberToken, name: memberName.trim() }),
+      })
+      if (!res.ok) throw new Error('Failed to update name')
+      setIsEditingName(false)
+    } catch (err) {
+      console.error(err)
+      setMemberName(member.name)
+      setIsEditingName(false)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const totalOtherItems = initialOtherMembers.reduce((s, o) => s + o.items.length, 0)
@@ -162,7 +201,26 @@ export function PlayerDashboard({
             <span className="font-press-start text-2xl"></span>
             <div>
               <p className="font-press-start text-[10px] text-muted-foreground">Bag of</p>
-              <h1 className="font-press-start text-lg leading-tight mt-1">{member.name}</h1>
+              {isEditingName ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    autoFocus
+                    className="font-press-start text-xs border-2 border-black dark:border-white bg-background px-1 py-0.5 w-full outline-none"
+                    value={memberName}
+                    onChange={e => setMemberName(e.target.value)}
+                    onBlur={updateName}
+                    onKeyDown={e => e.key === 'Enter' && updateName()}
+                  />
+                </div>
+              ) : (
+                <h1 
+                  className="font-press-start text-lg leading-tight mt-1 cursor-pointer hover:text-muted-foreground transition-colors flex items-center gap-2"
+                  onClick={() => setIsEditingName(true)}
+                >
+                  {memberName}
+                  <span className="text-[10px] text-muted-foreground opacity-50">edit</span>
+                </h1>
+              )}
               <p className="font-press-start text-[10px] text-muted-foreground mt-1">{session.name}</p>
             </div>
           </div>
@@ -172,11 +230,11 @@ export function PlayerDashboard({
 
       <Tabs defaultValue="inventory">
         <TabsList>
-          <TabsTrigger value="inventory">My Inventory</TabsTrigger>
-          <TabsTrigger value="pool">
+          <TabsTrigger className="grow" value="inventory">My Inventory</TabsTrigger>
+          <TabsTrigger className="grow" value="pool">
             Party Bag {partyPool.length > 0 && `(${partyPool.length})`}
           </TabsTrigger>
-          <TabsTrigger value="others">
+          <TabsTrigger className="grow" value="others">
             Other Members {totalOtherItems > 0 && `(${totalOtherItems})`}
           </TabsTrigger>
         </TabsList>

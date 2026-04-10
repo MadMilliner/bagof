@@ -2,6 +2,14 @@ import type { Metadata } from 'next'
 import { Press_Start_2P } from 'next/font/google'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import './globals.css'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/8bit/card"
 
 const pressStart = Press_Start_2P({
   weight: '400',
@@ -36,6 +44,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <ThemeProvider>{children}</ThemeProvider>
+        <div id="footer" className='ps-20 pe-20 pt-[2dvh] pb-[2dvh]'>
+          <Card>
+            <CardHeader>
+              <CardTitle></CardTitle>
+              <CardDescription>©2026 <a href="https://www.simulacrumtechnologies.com" target="_blank">Simulacrum Technologies</a></CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>All rights reserved. Website design and content are protected by copyright law. Built by DMs, for DMs.</p>
+              <p>Join our <a href="https://discord.gg/m4AnYSDueM" target="_blank">Discord server</a> for updates and to provide feedback.</p>
+            </CardContent>
+            <CardFooter>
+            </CardFooter>
+          </Card>
+      
+    </div>
       </body>
     </html>
   )

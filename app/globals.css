@@ -69,3 +69,8 @@ div input:focus {
   /* border: silver .3rem solid; */
   filter: contrast(75%);
 }
+
+/* #footer {
+  padding-inline: 5vw;
+  padding-block: 2dvh;
+} */

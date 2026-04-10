@@ -9,8 +9,9 @@ type Theme = 'light' | 'dark'
 
 const ThemeContext = createContext<{
   theme: Theme
+  mounted: boolean
   setTheme: (t: Theme) => void
-}>({ theme: 'light', setTheme: () => {} })
+}>({ theme: 'light', mounted: false, setTheme: () => {} })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light')
@@ -40,7 +41,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, mounted, setTheme }}>
       {children}
     </ThemeContext.Provider>
   )
@@ -51,7 +52,7 @@ export function useTheme() {
 }
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+  const { theme, mounted, setTheme } = useTheme()
   const isDark = theme === 'dark'
 
   return (
@@ -61,7 +62,7 @@ export function ThemeToggle() {
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      {isDark ? <FaMoon /> : <FaRegSun />}
+      {mounted ? (isDark ? <FaMoon /> : <FaRegSun />) : <FaRegSun />}
     </Button>
   )
 }

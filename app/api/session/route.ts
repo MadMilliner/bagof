@@ -13,8 +13,6 @@ export async function POST(req: NextRequest) {
       .map((n: string) => n.trim())
       .filter(Boolean)
 
-    if (cleaned.length === 0)
-      return NextResponse.json({ error: 'At least one member required' }, { status: 400 })
 
     const { session, members } = await createSession(sessionName.trim(), currencyType || 'dnd', cleaned)
     const base = req.headers.get('origin') ?? req.nextUrl.origin

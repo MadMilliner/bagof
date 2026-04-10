@@ -14,7 +14,7 @@ export function CreateSessionForm() {
   const [step, setStep] = useState<Step>('form')
   const [sessionName, setSessionName] = useState('')
   const [currencyType, setCurrencyType] = useState<'dnd' | 'wealth'>('dnd')
-  const [memberNames, setMemberNames] = useState(['', ''])
+  const [memberNames, setMemberNames] = useState<string[]>([])
   const [result, setResult] = useState<CreateSessionResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -32,7 +32,6 @@ export function CreateSessionForm() {
     setError('')
     const cleaned = memberNames.map(n => n.trim()).filter(Boolean)
     if (!sessionName.trim()) { setError('Campaign name is required.'); return }
-    if (cleaned.length === 0) { setError('Add at least one party member.'); return }
 
     setLoading(true)
     try {
@@ -184,11 +183,9 @@ export function CreateSessionForm() {
                     onKeyDown={e => e.key === 'Enter' && handleCreate()}
                     className="flex-1"
                   />
-                  {memberNames.length > 1 && (
-                    <Button size="icon" variant="destructive" onClick={() => removeMember(i)}>
-                      ✕
-                    </Button>
-                  )}
+                  <Button size="icon" variant="destructive" onClick={() => removeMember(i)}>
+                    ✕
+                  </Button>
                 </div>
               ))}
             </div>

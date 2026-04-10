@@ -10,9 +10,21 @@ import { ItemCard } from '@/components/inventory/ItemCard'
 import { AddItemForm } from '@/components/inventory/AddItemForm'
 import { GoldPanel } from '@/components/gold/GoldPanel'
 import { ThemeToggle } from '@/components/ThemeProvider'
+import
+  {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+  } from '@/components/ui/8bit/sheet'
+import { LuLink } from "react-icons/lu"
 import type { Item, Member, Session, ItemType } from '@/types'
+import { useEffect } from 'react'
 
-interface DMDashboardProps {
+interface DMDashboardProps
+{
   session: Session
   dmToken: string
   initialItems: Item[]
@@ -24,11 +36,19 @@ export function DMDashboard({
   dmToken,
   initialItems,
   initialMembers,
-}: DMDashboardProps) {
+}: DMDashboardProps)
+{
   const [allItems, setAllItems] = useState<Item[]>(initialItems)
   const [members, setMembers] = useState<Member[]>(initialMembers)
   const [partyGold, setPartyGold] = useState(session.partyGold)
   const [loading, setLoading] = useState(false)
+  const [origin, setOrigin] = useState('')
+  const [newMemberName, setNewMemberName] = useState('')
+
+  useEffect(() =>
+  {
+    setOrigin(window.location.origin)
+  }, [])
 
   const partyPool = allItems.filter(i => !i.ownerId)
   const memberItems = (id: string) => allItems.filter(i => i.ownerId === id)
@@ -38,7 +58,8 @@ export function DMDashboard({
 
   const addToPool = async (itemData: {
     name: string; description: string; type: ItemType; quantity: number; private: boolean
-  }) => {
+  }) =>
+  {
     setLoading(true)
     try {
       const res = await fetch('/api/items', {
@@ -55,7 +76,8 @@ export function DMDashboard({
     }
   }
 
-  const deleteItem = async (item: Item) => {
+  const deleteItem = async (item: Item) =>
+  {
     const res = await fetch('/api/items', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -65,7 +87,8 @@ export function DMDashboard({
     setAllItems(prev => prev.filter(i => i.id !== item.id))
   }
 
-  const splitGold = async (amountCp: number) => {
+  const splitGold = async (amountCp: number) =>
+  {
     const res = await fetch('/api/gold', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -76,7 +99,8 @@ export function DMDashboard({
     setMembers(prev => prev.map(m => ({ ...m, publicGold: m.publicGold + share })))
   }
 
-  const giveGold = async (memberId: string, deltaCp: number, field: 'publicGold' | 'privateGold') => {
+  const giveGold = async (memberId: string, deltaCp: number, field: 'publicGold' | 'privateGold') =>
+  {
     const res = await fetch('/api/gold', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -88,7 +112,8 @@ export function DMDashboard({
     ))
   }
 
-  const updateItemAction = async (item: Item, updates: Partial<Item>) => {
+  const updateItemAction = async (item: Item, updates: Partial<Item>) =>
+  {
     const res = await fetch('/api/items', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -98,7 +123,8 @@ export function DMDashboard({
     setAllItems(prev => prev.map(i => i.id === item.id ? { ...i, ...updates } : i))
   }
 
-  const adjustPartyGold = async (deltaCp: number) => {
+  const adjustPartyGold = async (deltaCp: number) =>
+  {
     const res = await fetch('/api/gold', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -106,6 +132,24 @@ export function DMDashboard({
     })
     if (!res.ok) return
     setPartyGold(prev => Math.max(0, prev + deltaCp))
+  }
+
+  const handleAddMember = async () => {
+    if (!newMemberName.trim()) return
+    setLoading(true)
+    try {
+      const res = await fetch('/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dmToken, name: newMemberName.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setMembers(prev => [...prev, data.member])
+      setNewMemberName('')
+    } finally {
+      setLoading(false)
+    }
   }
 
   // ── Render ────────────────────────────────────────────────
@@ -123,6 +167,69 @@ export function DMDashboard({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" title="Share player links">
+                  <LuLink className="h-4 w-4 mr-2" />
+                  Links
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Player Access Links</SheetTitle>
+                  <SheetDescription>
+                    Share these unique links with your players so they can manage their inventories.
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="mt-6 border-b-2 border-black dark:border-white pb-6">
+                  <p className="font-press-start text-[10px] font-bold mb-3">Add New Member</p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Player Name"
+                      value={newMemberName}
+                      onChange={e => setNewMemberName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleAddMember()}
+                      className="text-[10px] h-9"
+                    />
+                    <Button 
+                      size="sm" 
+                      onClick={handleAddMember} 
+                      disabled={!newMemberName.trim() || loading}
+                    >
+                      {loading ? '...' : 'Add'}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-6 overflow-y-auto max-h-[60vh] pr-2">
+                  {members.map(m => (
+                    <div key={m.id} className="space-y-2">
+                      <p className="font-press-start text-[10px] font-bold text-foreground">⚔️ {m.name}</p>
+                      <div className="flex gap-2">
+                        <Input
+                          readOnly
+                          value={origin ? `${origin}/p/${m.token}` : `/p/${m.token}`}
+                          className="text-[10px] h-8"
+                        />
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-8 text-[10px]"
+                          onClick={() =>
+                          {
+                            const url = origin ? `${origin}/p/${m.token}` : `${window.location.origin}/p/${m.token}`
+                            navigator.clipboard.writeText(url)
+                          }}
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SheetContent>
+            </Sheet>
             <Badge variant="destructive">DM</Badge>
             <ThemeToggle />
           </div>
@@ -131,11 +238,11 @@ export function DMDashboard({
 
       <Tabs defaultValue="pool">
         <TabsList>
-          <TabsTrigger value="pool">
+          <TabsTrigger className='grow' value="pool">
             Party Bag {partyPool.length > 0 && `(${partyPool.length})`}
           </TabsTrigger>
-          <TabsTrigger value="members">Members</TabsTrigger>
-          <TabsTrigger value="gold">Gold</TabsTrigger>
+          <TabsTrigger className='grow' value="members">Members</TabsTrigger>
+          <TabsTrigger className='grow' value="gold">Gold</TabsTrigger>
         </TabsList>
 
         {/* ── Party Pool ── */}
@@ -236,7 +343,8 @@ function GiveMemberGold({
   member: Member
   onGive: (id: string, deltaCp: number, field: 'publicGold' | 'privateGold') => Promise<void>
   currencyType: 'dnd' | 'wealth'
-}) {
+})
+{
   const [gp, setGp] = useState('')
   const [sp, setSp] = useState('')
   const [cp, setCp] = useState('')
@@ -246,10 +354,11 @@ function GiveMemberGold({
   const deltaCp = currencyType === 'wealth'
     ? (parseFloat(cp) || 0)
     : Math.round((parseFloat(gp) || 0) * 100 + (parseFloat(sp) || 0) * 10 + (parseFloat(cp) || 0))
-    
+
   const hasValue = currencyType === 'wealth' ? cp !== '' : (gp !== '' || sp !== '' || cp !== '')
 
-  const handle = async (sign: 1 | -1) => {
+  const handle = async (sign: 1 | -1) =>
+  {
     if (!hasValue || deltaCp === 0) return
     setLoading(true)
     await onGive(member.id, sign * deltaCp, field)
@@ -257,7 +366,8 @@ function GiveMemberGold({
     setLoading(false)
   }
 
-  const publicDisplay = (() => {
+  const publicDisplay = (() =>
+  {
     if (currencyType === 'wealth') return `${member.publicGold} W`
     const g = Math.floor(member.publicGold / 100)
     const s = Math.floor((member.publicGold % 100) / 10)
@@ -272,7 +382,7 @@ function GiveMemberGold({
           <span className="font-press-start text-[10px] font-bold">{member.name}</span>
           <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400">{publicDisplay}</span>
         </div>
-        
+
         {currencyType === 'wealth' ? (
           <div className="flex gap-1 items-center">
             <Input type="number" min={0} placeholder="0" value={cp}
@@ -298,7 +408,7 @@ function GiveMemberGold({
             </div>
           </div>
         )}
-        
+
         <div className="flex gap-1 items-center mb-2">
           <select
             className="font-press-start text-[10px] border-2 border-black dark:border-white bg-background px-1 py-1 h-9"

@@ -10,7 +10,8 @@ import type { CreateSessionResponse } from '@/types'
 
 type Step = 'form' | 'links'
 
-export function CreateSessionForm() {
+export function CreateSessionForm()
+{
   const [step, setStep] = useState<Step>('form')
   const [sessionName, setSessionName] = useState('')
   const [currencyType, setCurrencyType] = useState<'dnd' | 'wealth'>('dnd')
@@ -28,7 +29,8 @@ export function CreateSessionForm() {
 
   const addMember = () => setMemberNames(prev => [...prev, ''])
 
-  const handleCreate = async () => {
+  const handleCreate = async () =>
+  {
     setError('')
     const cleaned = memberNames.map(n => n.trim()).filter(Boolean)
     if (!sessionName.trim()) { setError('Campaign name is required.'); return }
@@ -51,13 +53,15 @@ export function CreateSessionForm() {
     }
   }
 
-  const copy = (text: string, key: string) => {
+  const copy = (text: string, key: string) =>
+  {
     navigator.clipboard.writeText(text)
     setCopied(key)
     setTimeout(() => setCopied(null), 2000)
   }
 
-  const copyAll = (r: CreateSessionResponse) => {
+  const copyAll = (r: CreateSessionResponse) =>
+  {
     const lines = [
       `Bag of — ${r.session.name}`,
       '',
@@ -124,7 +128,7 @@ export function CreateSessionForm() {
         <Card>
           <CardContent className="pt-4">
             <p className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400 leading-relaxed">
-              ⚠ Save these links now. No accounts means no recovery.
+              Save these links now. There is no way to retrieve a DM link. Player links can be copied again from the DM's dashboard.
             </p>
           </CardContent>
         </Card>

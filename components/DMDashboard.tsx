@@ -11,14 +11,14 @@ import { AddItemForm } from '@/components/inventory/AddItemForm'
 import { GoldPanel } from '@/components/gold/GoldPanel'
 import { ThemeToggle } from '@/components/ThemeProvider'
 import
-  {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-  } from '@/components/ui/8bit/sheet'
+{
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/8bit/sheet'
 import { LuLink } from "react-icons/lu"
 import type { Item, Member, Session, ItemType } from '@/types'
 import { useEffect } from 'react'
@@ -134,7 +134,8 @@ export function DMDashboard({
     setPartyGold(prev => Math.max(0, prev + deltaCp))
   }
 
-  const handleAddMember = async () => {
+  const handleAddMember = async () =>
+  {
     if (!newMemberName.trim()) return
     setLoading(true)
     try {
@@ -171,7 +172,7 @@ export function DMDashboard({
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" title="Share player links">
                   <LuLink className="h-4 w-4 mr-2" />
-                  Links
+                  Manage Players and Links
                 </Button>
               </SheetTrigger>
               <SheetContent>
@@ -192,9 +193,9 @@ export function DMDashboard({
                       onKeyDown={e => e.key === 'Enter' && handleAddMember()}
                       className="text-[10px] h-9"
                     />
-                    <Button 
-                      size="sm" 
-                      onClick={handleAddMember} 
+                    <Button
+                      size="sm"
+                      onClick={handleAddMember}
                       disabled={!newMemberName.trim() || loading}
                     >
                       {loading ? '...' : 'Add'}
@@ -242,7 +243,9 @@ export function DMDashboard({
             Party Bag {partyPool.length > 0 && `(${partyPool.length})`}
           </TabsTrigger>
           <TabsTrigger className='grow' value="members">Members</TabsTrigger>
-          <TabsTrigger className='grow' value="gold">Gold</TabsTrigger>
+          <TabsTrigger className='grow' value="gold">
+            {session.currencyType === 'wealth' ? 'Wealth' : 'Gold'}
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Party Pool ── */}
@@ -281,8 +284,8 @@ export function DMDashboard({
                 <CardHeader className="pb-2">
                   <CardTitle className="text-xs flex items-center justify-between">
                     <span>⚔️ {m.name}</span>
-                    <span className="text-yellow-600 dark:text-yellow-400">
-                      {m.publicGold} gp
+                    <span className={session.currencyType === 'wealth' ? "text-muted-foreground" : "text-yellow-600 dark:text-yellow-400"}>
+                      {session.currencyType === 'wealth' ? `${m.publicGold} W` : `${Math.floor(m.publicGold / 100)}gp`}
                     </span>
                   </CardTitle>
                 </CardHeader>
@@ -310,7 +313,7 @@ export function DMDashboard({
           </div>
         </TabsContent>
 
-        {/* ── Gold ── */}
+        {/* ── Currency ── */}
         <TabsContent value="gold">
           <GoldPanel
             publicGold={totalGold}
@@ -322,7 +325,7 @@ export function DMDashboard({
           />
 
           <div className="space-y-3">
-            <p className="font-press-start text-xs mb-3">Give Currency Directly</p>
+            <p className="font-press-start text-xs mb-3">Give {session.currencyType === 'wealth' ? 'Wealth' : 'Currency'} Directly</p>
             {members.map(m => (
               <GiveMemberGold key={m.id} member={m} onGive={giveGold} currencyType={session.currencyType} />
             ))}

@@ -19,8 +19,11 @@ const pressStart = Press_Start_2P({
 })
 
 export const metadata: Metadata = {
-  title: 'Bag of — Party Loot Manager',
-  description: 'TTRPG party inventory manager. No accounts needed.',
+  title: {
+    default: 'Bag of — Party Loot Manager',
+    template: '%s | Bag of'
+  },
+  description: 'Manage your TTRPG party inventory with ease. No accounts, just simple 8-bit loot tracking for DMs and players.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode })
@@ -46,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode })
           }}
         />
         <ThemeProvider>{children}</ThemeProvider>
-        <div id="footer" className='ps-10 pe-10 pt-[2dvh] pb-[2dvh]'>
+        <div id="footer" className='h-[5dvh] ps-10 pe-10 pt-[2dvh] pb-[2dvh]'>
           <Card>
             <CardHeader>
               <CardTitle></CardTitle>

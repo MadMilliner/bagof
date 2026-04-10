@@ -205,7 +205,7 @@ export function GoldPanel({
         <div className="flex gap-4 flex-wrap">
           <div className="flex-1 min-w-[120px]">
             <p className="font-press-start text-[10px] text-muted-foreground mb-1">
-              {titleOverride ? titleOverride : (isDM ? 'Total Party Gold' : 'Public Gold')}
+              {titleOverride ? titleOverride : (isDM ? (currencyType === 'wealth' ? 'Total Party Wealth' : 'Total Party Gold') : (currencyType === 'wealth' ? 'Public Wealth' : 'Public Gold'))}
             </p>
             <p className="font-press-start text-base text-yellow-600 dark:text-yellow-400 leading-tight">
               {formatCurrency(publicGold, currencyType)}
@@ -213,7 +213,7 @@ export function GoldPanel({
           </div>
           {showPrivate && (
             <div className="flex-1 min-w-[120px]">
-              <p className="font-press-start text-[10px] text-muted-foreground mb-1">🔒 Private Gold</p>
+              <p className="font-press-start text-[10px] text-muted-foreground mb-1">🔒 {currencyType === 'wealth' ? 'Private Wealth' : 'Private Gold'}</p>
               <p className="font-press-start text-base leading-tight">
                 {formatCurrency(privateGold, currencyType)}
               </p>
@@ -225,7 +225,7 @@ export function GoldPanel({
         {!isDM && onAdjustPublic && (
           <div className="border-t-2 border-black dark:border-white pt-3">
             <CurrencyInput
-              label={titleOverride ? `Adjust ${titleOverride}` : "Adjust Public Gold"}
+              label={titleOverride ? `Adjust ${titleOverride}` : (currencyType === 'wealth' ? "Adjust Public Wealth" : "Adjust Public Gold")}
               onAdjust={deltaCp => wrap(() => onAdjustPublic(deltaCp))}
               loading={loading}
               currencyType={currencyType}
@@ -237,7 +237,7 @@ export function GoldPanel({
         {!isDM && showPrivate && onAdjustPrivate && (
           <div className="border-t-2 border-black dark:border-white pt-3">
             <CurrencyInput
-              label="Adjust Private Gold"
+              label={currencyType === 'wealth' ? "Adjust Private Wealth" : "Adjust Private Gold"}
               onAdjust={deltaCp => wrap(() => onAdjustPrivate(deltaCp))}
               loading={loading}
               currencyType={currencyType}
@@ -248,7 +248,7 @@ export function GoldPanel({
         {/* ── DM: split gold ── */}
         {isDM && onSplitGold && (
           <div className="border-t-2 border-black dark:border-white pt-3 space-y-2">
-            <p className="font-press-start text-[10px] text-muted-foreground">Split Gold Evenly</p>
+            <p className="font-press-start text-[10px] text-muted-foreground">Split {currencyType === 'wealth' ? 'Wealth' : 'Gold'} Evenly</p>
             {currencyType === 'wealth' ? (
               <div className="flex gap-1 items-center">
                 <Input type="number" min={0} placeholder="0" value={splitCp}

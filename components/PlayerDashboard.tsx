@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/8bit/tabs'
 import { Badge } from '@/components/ui/8bit/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
@@ -42,6 +42,14 @@ export function PlayerDashboard({
   const [isEditingName, setIsEditingName] = useState(false)
   // gold values are in copper pieces (cp)
   const [loading, setLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() =>
+  {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
 
   // ── Actions ───────────────────────────────────────────────
 
@@ -165,7 +173,8 @@ export function PlayerDashboard({
     await adjustGold(amount, 'publicGold')
   }
 
-  const updateName = async () => {
+  const updateName = async () =>
+  {
     if (!memberName.trim() || memberName === member.name) {
       setIsEditingName(false)
       setMemberName(member.name)
@@ -213,7 +222,7 @@ export function PlayerDashboard({
                   />
                 </div>
               ) : (
-                <h1 
+                <h1
                   className="font-press-start text-lg leading-tight mt-1 cursor-pointer hover:text-muted-foreground transition-colors flex items-center gap-2"
                   onClick={() => setIsEditingName(true)}
                 >

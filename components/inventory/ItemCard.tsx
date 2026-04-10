@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/8bit/card'
 import { Badge } from '@/components/ui/8bit/badge'
 import { Button } from '@/components/ui/8bit/button'
 import { Textarea } from '@/components/ui/8bit/textarea'
-import {
+import
+{
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -23,13 +24,16 @@ import { GiAxeSword } from "react-icons/gi";
 import { FaShieldHalved } from "react-icons/fa6";
 import { GiStandingPotion } from "react-icons/gi";
 import { GiRopeCoil } from "react-icons/gi";
+import { FaDiceD20 } from 'react-icons/fa6'
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g
 const DICE_REGEX = /\b(\d+d\d+(?:[+-]\d+)?)\b/gi
 
-function formatDescription(text: string, onDiceClick: (notation: string) => void) {
+function formatDescription(text: string, onDiceClick: (notation: string) => void)
+{
   const urlParts = text.split(URL_REGEX)
-  return urlParts.map((part, i) => {
+  return urlParts.map((part, i) =>
+  {
     if (URL_REGEX.test(part)) {
       return (
         <a key={`u-${i}`} href={part} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 text-blue-600 dark:text-blue-400 break-all">
@@ -39,7 +43,8 @@ function formatDescription(text: string, onDiceClick: (notation: string) => void
     }
 
     const diceParts = part.split(DICE_REGEX)
-    return diceParts.map((sub, j) => {
+    return diceParts.map((sub, j) =>
+    {
       if (/^\d+d\d+(?:[+-]\d+)?$/i.test(sub)) {
         return (
           <button
@@ -57,7 +62,7 @@ function formatDescription(text: string, onDiceClick: (notation: string) => void
 }
 
 const TYPE_ICONS: Record<Item['type'], React.ReactElement> = {
-  Weapon: <GiAxeSword/>,
+  Weapon: <GiAxeSword />,
   Armor: <FaShieldHalved />,
   Consumable: <GiStandingPotion />,
   Other: <GiRopeCoil />,
@@ -70,7 +75,8 @@ const TYPE_VARIANT: Record<Item['type'], 'default' | 'secondary' | 'destructive'
   Other: 'outline',
 }
 
-interface ItemCardProps {
+interface ItemCardProps
+{
   item: Item
   viewerIsOwner?: boolean
   viewerIsDM?: boolean
@@ -90,7 +96,8 @@ export function ItemCard({
   onTogglePrivate,
   onDelete,
   onUpdate
-}: ItemCardProps) {
+}: ItemCardProps)
+{
   const [isEditing, setIsEditing] = useState(false)
   const [draftDesc, setDraftDesc] = useState(item.description)
   const [draftType, setDraftType] = useState<Item['type']>(item.type)
@@ -99,7 +106,8 @@ export function ItemCard({
 
   const isInPool = item.ownerId === null
 
-  const handleSave = async () => {
+  const handleSave = async () =>
+  {
     if (onUpdate && (draftDesc !== item.description || draftType !== item.type)) {
       setSaving(true)
       await onUpdate(item, { description: draftDesc, type: draftType })
@@ -108,7 +116,8 @@ export function ItemCard({
     setIsEditing(false)
   }
 
-  const handleCancel = () => {
+  const handleCancel = () =>
+  {
     setDraftDesc(item.description)
     setDraftType(item.type)
     setIsEditing(false)
@@ -157,10 +166,14 @@ export function ItemCard({
                     <option value="Other">Other</option>
                   </select>
                   <Textarea
+                    placeholder="Description (e.g., '1d8+2 damage')"
                     value={draftDesc}
                     onChange={e => setDraftDesc(e.target.value)}
                     className="min-h-[80px] text-[10px] font-press-start"
                   />
+                  <p className="font-press-start text-[8px] text-muted-foreground mt-1">
+                    Tip: Use '1d20+5' to make rolls clickable. <FaDiceD20 className="inline-block text-lg" />
+                  </p>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={handleSave} disabled={saving}>Save</Button>
                     <Button size="sm" variant="outline" onClick={handleCancel} disabled={saving}>Cancel</Button>

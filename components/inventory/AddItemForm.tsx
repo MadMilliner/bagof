@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/8bit/input'
 import { Textarea } from '@/components/ui/8bit/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select'
 import type { ItemType } from '@/types'
+import { FaDiceD20 } from 'react-icons/fa6'
 
 const ITEM_TYPES: ItemType[] = ['Weapon', 'Armor', 'Consumable', 'Other']
 
-interface AddItemFormProps {
+interface AddItemFormProps
+{
   onAdd: (item: {
     name: string
     description: string
@@ -29,7 +31,8 @@ export function AddItemForm({
   showPrivateToggle = true,
   defaultPrivate = false,
   placeholder = 'Item name...',
-}: AddItemFormProps) {
+}: AddItemFormProps)
+{
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [type, setType] = useState<ItemType>('Other')
@@ -37,7 +40,8 @@ export function AddItemForm({
   const [isPrivate, setIsPrivate] = useState(defaultPrivate)
   const [expanded, setExpanded] = useState(false)
 
-  const handleAdd = async () => {
+  const handleAdd = async () =>
+  {
     if (!name.trim()) return
     await onAdd({ name: name.trim(), description, type, quantity, private: isPrivate })
     setName('')
@@ -66,11 +70,14 @@ export function AddItemForm({
       {expanded && (
         <div className="border-2 border-black dark:border-white p-3 space-y-3 [box-shadow:4px_4px_0px_0px_rgba(0,0,0,1)] dark:[box-shadow:4px_4px_0px_0px_rgba(255,255,255,1)]">
           <Textarea
-            placeholder="Description (optional)"
+            placeholder="Description (e.g., 'Deals 2d6+3 fire damage')"
             value={description}
             onChange={e => setDescription(e.target.value)}
             rows={2}
           />
+          <p className="font-press-start text-[8px] text-muted-foreground mt-1">
+            Tip: Use '1d20+5' to make rolls clickable. <FaDiceD20 className="inline-block text-lg" />
+          </p>
 
           <div className="flex flex-wrap gap-3 items-center">
             <div className="flex items-center gap-2">

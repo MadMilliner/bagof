@@ -5,6 +5,17 @@ import { Card, CardContent } from '@/components/ui/8bit/card'
 import { Badge } from '@/components/ui/8bit/badge'
 import { Button } from '@/components/ui/8bit/button'
 import { Textarea } from '@/components/ui/8bit/textarea'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/8bit/alert-dialog'
 import { DiceRollerPopup } from '@/components/DiceRoller'
 import type { Item } from '@/types'
 import type { IconType } from 'react-icons'
@@ -182,9 +193,27 @@ export function ItemCard({
                       </Button>
                     )}
                     {onDelete && (
-                      <Button size="sm" variant="destructive" onClick={() => onDelete(item)}>
-                        Drop
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="destructive">
+                            Drop
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Discard {item.name}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to drop this item? It will be removed from your inventory permanently.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDelete(item)}>
+                              Drop Item
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                   </>
                 )}
@@ -197,9 +226,27 @@ export function ItemCard({
                       </Button>
                     )}
                     {onDelete && (
-                      <Button size="sm" variant="destructive" onClick={() => onDelete(item)}>
-                        Remove
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="destructive">
+                            Remove
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove {item.name}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Dungeon Master, are you sure you want to delete this item from the session?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDelete(item)}>
+                              Remove Item
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                   </>
                 )}

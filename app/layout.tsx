@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { Press_Start_2P } from 'next/font/google'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import './globals.css'
-import {
+import
+{
   Card,
   CardContent,
   CardDescription,
@@ -22,7 +23,8 @@ export const metadata: Metadata = {
   description: 'TTRPG party inventory manager. No accounts needed.',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode })
+{
   return (
     <html lang="en" className={pressStart.variable} suppressHydrationWarning>
       <body className="font-sans antialiased">
@@ -44,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <ThemeProvider>{children}</ThemeProvider>
-        <div id="footer" className='ps-20 pe-20 pt-[2dvh] pb-[2dvh]'>
+        <div id="footer" className='ps-10 pe-10 pt-[2dvh] pb-[2dvh]'>
           <Card>
             <CardHeader>
               <CardTitle></CardTitle>
@@ -57,8 +59,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <CardFooter>
             </CardFooter>
           </Card>
-      
-    </div>
+
+        </div>
       </body>
     </html>
   )

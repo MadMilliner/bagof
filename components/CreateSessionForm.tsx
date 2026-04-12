@@ -15,6 +15,7 @@ export function CreateSessionForm()
   const [step, setStep] = useState<Step>('form')
   const [sessionName, setSessionName] = useState('')
   const [currencyType, setCurrencyType] = useState<'dnd' | 'wealth'>('dnd')
+  const [dmRole, setDmRole] = useState('Dungeon Master')
   const [memberNames, setMemberNames] = useState<string[]>([])
   const [result, setResult] = useState<CreateSessionResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -40,7 +41,7 @@ export function CreateSessionForm()
       const res = await fetch('/api/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionName: sessionName.trim(), currencyType, memberNames: cleaned }),
+        body: JSON.stringify({ sessionName: sessionName.trim(), currencyType, dmRole, memberNames: cleaned }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
@@ -65,7 +66,7 @@ export function CreateSessionForm()
     const lines = [
       `Bag of — ${r.session.name}`,
       '',
-      `DM Link`,
+      `${r.session.dmRole} Link`,
       r.dmUrl,
       '',
       ...r.memberLinks.flatMap(link => [`⚔️ ${link.name}`, link.url, '']),
@@ -99,14 +100,14 @@ export function CreateSessionForm()
         <Card>
           <CardHeader>
             <CardTitle className="text-xs flex items-center gap-2">
-              DM Link
+              {result.session.dmRole} Link
               <Badge variant="destructive">Full Access</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="font-mono text-[10px] text-muted-foreground break-all">{result.dmUrl}</p>
             <Button size="sm" variant="outline" onClick={() => copy(result.dmUrl, 'dm')}>
-              {copied === 'dm' ? '✓ Copied!' : 'Copy DM Link'}
+              {copied === 'dm' ? '✓ Copied!' : `Copy ${result.session.dmRole} Link`}
             </Button>
           </CardContent>
         </Card>
@@ -128,7 +129,7 @@ export function CreateSessionForm()
         <Card>
           <CardContent className="pt-4">
             <p className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400 leading-relaxed">
-              Save these links now. There is no way to retrieve a DM link. Player links can be copied again from the DM's dashboard.
+              Save these links now. There is no way to retrieve a {result.session.dmRole} link. Player links can be copied again from the {result.session.dmRole === 'Referee' ? "Referee's" : result.session.dmRole + "'s"} dashboard.
             </p>
           </CardContent>
         </Card>
@@ -172,6 +173,20 @@ export function CreateSessionForm()
             >
               <option value="dnd">Traditional (GP / SP / CP)</option>
               <option value="wealth">Abstract Wealth (Single Number)</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="font-press-start text-[10px]">What do you prefer to be called?</label>
+            <select
+              className="font-press-start text-[10px] w-full border-2 border-black dark:border-white bg-background px-2 py-2"
+              value={dmRole}
+              onChange={e => setDmRole(e.target.value)}
+            >
+              <option value="Dungeon Master">Dungeon Master</option>
+              <option value="Game Master">Game Master</option>
+              <option value="Storyteller">Storyteller</option>
+              <option value="Director">Director</option>
+              <option value="Referee">Referee</option>
             </select>
           </div>
 

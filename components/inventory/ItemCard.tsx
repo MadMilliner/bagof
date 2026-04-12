@@ -85,6 +85,7 @@ interface ItemCardProps
   onTogglePrivate?: (item: Item) => void
   onDelete?: (item: Item) => void
   onUpdate?: (item: Item, updates: Partial<Item>) => Promise<void>
+  dmRole?: string
 }
 
 export function ItemCard({
@@ -95,7 +96,8 @@ export function ItemCard({
   onOffer,
   onTogglePrivate,
   onDelete,
-  onUpdate
+  onUpdate,
+  dmRole = 'Dungeon Master'
 }: ItemCardProps)
 {
   const [isEditing, setIsEditing] = useState(false)
@@ -249,7 +251,7 @@ export function ItemCard({
                           <AlertDialogHeader>
                             <AlertDialogTitle>Remove {item.name}?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Dungeon Master, are you sure you want to delete this item from the session?
+                              {dmRole}, are you sure you want to delete this item from the session?
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

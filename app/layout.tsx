@@ -53,11 +53,11 @@ export default function RootLayout({ children }: { children: React.ReactNode })
           <Card>
             <CardHeader>
               <CardTitle></CardTitle>
-              <CardDescription>©2026 <a href="https://www.simulacrumtechnologies.com" target="_blank">Simulacrum Technologies</a></CardDescription>
+              <CardDescription>©2026 <a className='underline' href="https://www.simulacrumtechnologies.com" target="_blank">Simulacrum Technologies</a></CardDescription>
             </CardHeader>
             <CardContent>
               <p>All rights reserved. Website design and content are protected by copyright law. Built by DMs, for DMs.</p>
-              <p>Join our <a href="https://discord.gg/m4AnYSDueM" target="_blank">Discord server</a> for updates and to provide feedback.</p>
+              <p>Join our <a className='text-stone-500 underline' href="https://discord.gg/m4AnYSDueM" target="_blank">Discord server</a> for updates and to provide feedback.</p>
             </CardContent>
             <CardFooter>
             </CardFooter>

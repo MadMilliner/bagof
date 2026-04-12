@@ -44,11 +44,15 @@ export function DMDashboard({
   const [loading, setLoading] = useState(false)
   const [origin, setOrigin] = useState('')
   const [newMemberName, setNewMemberName] = useState('')
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() =>
   {
     setOrigin(window.location.origin)
+    setMounted(true)
   }, [])
+
+  if (!mounted) return null
 
   const partyPool = allItems.filter(i => !i.ownerId)
   const memberItems = (id: string) => allItems.filter(i => i.ownerId === id)
@@ -163,7 +167,7 @@ export function DMDashboard({
             <span className="font-press-start text-2xl"></span>
             <div>
               <p className="font-press-start text-[10px] text-muted-foreground">Bag of</p>
-              <h1 className="font-press-start text-lg leading-tight mt-1">Dungeon Master</h1>
+              <h1 className="font-press-start text-lg leading-tight mt-1">{session.dmRole}</h1>
               <p className="font-press-start text-[10px] text-muted-foreground mt-1">{session.name}</p>
             </div>
           </div>
@@ -231,7 +235,7 @@ export function DMDashboard({
                 </div>
               </SheetContent>
             </Sheet>
-            <Badge variant="destructive">DM</Badge>
+            <Badge variant="destructive">{session.dmRole}</Badge>
             <ThemeToggle />
           </div>
         </div>
@@ -270,7 +274,7 @@ export function DMDashboard({
               </p>
             ) : (
               partyPool.map(item => (
-                <ItemCard key={item.id} item={item} viewerIsDM onDelete={deleteItem} onUpdate={updateItemAction} />
+                <ItemCard key={item.id} item={item} viewerIsDM onDelete={deleteItem} onUpdate={updateItemAction} dmRole={session.dmRole} />
               ))
             )}
           </div>
@@ -303,6 +307,7 @@ export function DMDashboard({
                           viewerIsDM
                           onDelete={deleteItem}
                           onUpdate={updateItemAction}
+                          dmRole={session.dmRole}
                         />
                       ))
                     )}

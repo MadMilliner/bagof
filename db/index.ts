@@ -42,6 +42,7 @@ export async function migrate() {
   // Add columns that may be missing from older table versions
   await sql`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS currency_type TEXT NOT NULL DEFAULT 'dnd'`
   await sql`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS party_gold INTEGER NOT NULL DEFAULT 0`
+  await sql`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS dm_role TEXT NOT NULL DEFAULT 'Dungeon Master'`
 
   await sql`CREATE INDEX IF NOT EXISTS idx_members_session ON members(session_id)`
   await sql`CREATE INDEX IF NOT EXISTS idx_members_token ON members(token)`

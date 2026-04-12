@@ -4,7 +4,7 @@ import type { CreateSessionResponse } from '@/types'
 
 export async function POST(req: NextRequest) {
   try {
-    const { sessionName, memberNames, currencyType } = await req.json()
+    const { sessionName, memberNames, currencyType, dmRole } = await req.json()
 
     if (!sessionName?.trim())
       return NextResponse.json({ error: 'Campaign name required' }, { status: 400 })
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       .filter(Boolean)
 
 
-    const { session, members } = await createSession(sessionName.trim(), currencyType || 'dnd', cleaned)
+    const { session, members } = await createSession(sessionName.trim(), currencyType || 'dnd', dmRole || 'Dungeon Master', cleaned)
     const base = req.headers.get('origin') ?? req.nextUrl.origin
 
     const response: CreateSessionResponse = {

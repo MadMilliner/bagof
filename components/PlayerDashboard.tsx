@@ -273,6 +273,7 @@ export function PlayerDashboard({
                   onTogglePrivate={togglePrivate}
                   onDelete={deleteItem}
                   onUpdate={updateItemAction}
+                  dmRole={session.dmRole}
                 />
               ))
             )}
@@ -315,6 +316,7 @@ export function PlayerDashboard({
                   key={item.id}
                   item={item}
                   onClaim={claimItem}
+                  dmRole={session.dmRole}
                 />
               ))
             )}
@@ -345,7 +347,7 @@ export function PlayerDashboard({
                       </p>
                     ) : (
                       items.map(item => (
-                        <ItemCard key={item.id} item={item} />
+                        <ItemCard key={item.id} item={item} dmRole={session.dmRole} />
                       ))
                     )}
                   </CardContent>

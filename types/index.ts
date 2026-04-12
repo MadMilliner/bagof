@@ -28,6 +28,7 @@ export interface Session {
   dmToken: string
   name: string
   currencyType: 'dnd' | 'wealth'
+  dmRole: string
   partyGold: number
   createdAt: string
 }
@@ -35,6 +36,7 @@ export interface Session {
 export interface CreateSessionPayload {
   sessionName: string
   currencyType: 'dnd' | 'wealth'
+  dmRole: string
   memberNames: string[]
 }
 

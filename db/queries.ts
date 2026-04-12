@@ -13,6 +13,7 @@ function mapSession(row: Record<string, any>): Session {
     dmToken: row.dm_token,
     name: row.name,
     currencyType: row.currency_type,
+    dmRole: row.dm_role,
     partyGold: row.party_gold,
     createdAt: row.created_at,
   }
@@ -80,14 +81,15 @@ export async function getSessionMembers(sessionId: string): Promise<Member[]> {
 export async function createSession(
   name: string,
   currencyType: 'dnd' | 'wealth',
+  dmRole: string,
   memberNames: string[]
 ): Promise<{ session: Session; members: Member[] }> {
   const sessionId = randomUUID()
   const dmToken = randomUUID()
 
   const { rows: sessionRows } = await sql`
-    INSERT INTO sessions (id, dm_token, name, currency_type)
-    VALUES (${sessionId}, ${dmToken}, ${name}, ${currencyType})
+    INSERT INTO sessions (id, dm_token, name, currency_type, dm_role)
+    VALUES (${sessionId}, ${dmToken}, ${name}, ${currencyType}, ${dmRole})
     RETURNING *
   `
 

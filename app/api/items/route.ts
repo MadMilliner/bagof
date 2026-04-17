@@ -13,6 +13,7 @@ import {
   MAX_ITEM_QUANTITY
 } from '@/db/queries'
 import { checkRateLimit } from '@/lib/rateLimit'
+import type { Item } from '@/types'
 
 export async function POST(req: NextRequest) {
   const rateLimited = checkRateLimit(req, 30, 60_000)
@@ -125,9 +126,43 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (action === 'update') {
+      // Validate updates: only allow known fields with sane bounds
+      if (!updates || typeof updates !== 'object')
+        return NextResponse.json({ error: 'updates object required' }, { status: 400 })
+      const sanitized: Partial<{ name: string; description: string; type: Item['type']; private: boolean; quantity: number }> = {}
+      if (updates.name !== undefined) {
+        if (typeof updates.name !== 'string' || !updates.name.trim())
+          return NextResponse.json({ error: 'name must be a non-empty string' }, { status: 400 })
+        sanitized.name = updates.name.trim().slice(0, 200)
+      }
+      if (updates.description !== undefined) {
+        if (typeof updates.description !== 'string')
+          return NextResponse.json({ error: 'description must be a string' }, { status: 400 })
+        sanitized.description = updates.description.slice(0, 2000)
+      }
+      if (updates.type !== undefined) {
+        const validTypes: Item['type'][] = ['Weapon', 'Armor', 'Consumable', 'Other']
+        if (!validTypes.includes(updates.type))
+          return NextResponse.json({ error: 'invalid type' }, { status: 400 })
+        sanitized.type = updates.type
+      }
+      if (updates.private !== undefined) {
+        if (typeof updates.private !== 'boolean')
+          return NextResponse.json({ error: 'private must be a boolean' }, { status: 400 })
+        sanitized.private = updates.private
+      }
+      if (updates.quantity !== undefined) {
+        const qty = Math.floor(updates.quantity)
+        if (!Number.isFinite(qty) || qty < 1 || qty > MAX_ITEM_QUANTITY)
+          return NextResponse.json({ error: `quantity must be 1–${MAX_ITEM_QUANTITY}` }, { status: 400 })
+        sanitized.quantity = qty
+      }
+      if (Object.keys(sanitized).length === 0)
+        return NextResponse.json({ error: 'no valid fields to update' }, { status: 400 })
+
       await updateItem(
         itemId,
-        updates,
+        sanitized,
         isDM ? undefined : memberId!,
         isDM ? sessionId! : undefined
       )

@@ -19,17 +19,16 @@ import
 } from '@/components/ui/8bit/alert-dialog'
 import { DiceRollerPopup } from '@/components/DiceRoller'
 import type { Item } from '@/types'
-import type { IconType } from 'react-icons'
 import { GiAxeSword } from "react-icons/gi";
 import { FaShieldHalved } from "react-icons/fa6";
 import { GiStandingPotion } from "react-icons/gi";
 import { GiRopeCoil } from "react-icons/gi";
 import { FaDiceD20 } from 'react-icons/fa6'
 
-const URL_REGEX = /(https?:\/\/[^\s]+)/g
-const DICE_REGEX = /\b(\d+d\d+(?:[+-]\d+)?)\b/gi
+const URL_REGEX = /(https?:\/\/[^\s]+)/
+const DICE_REGEX = /\b(\d+d\d+(?:[+-]\d+)?)\b/i
 
-function formatDescription(text: string, onDiceClick: (notation: string) => void)
+export function formatDescription(text: string, onDiceClick: (notation: string) => void)
 {
   const urlParts = text.split(URL_REGEX)
   return urlParts.map((part, i) =>

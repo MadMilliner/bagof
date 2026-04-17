@@ -71,4 +71,7 @@ export async function migrate() {
   `
   await sql`CREATE INDEX IF NOT EXISTS idx_activity_session ON activity_log(session_id)`
   await sql`CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_log(session_id, created_at DESC)`
+
+  // Track when sessions are last accessed (for cleanup cron)
+  await sql`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS last_accessed_at TIMESTAMPTZ`
 }

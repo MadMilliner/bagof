@@ -4,7 +4,7 @@
 
 **Bag of** is a shared party loot manager for tabletop RPGs (TTRPGs). It allows a DM to create a session, distribute unique links to players, and collaboratively manage party inventory and gold — no accounts or passwords required. The aesthetic is retro 8-bit, using the [8bitcn/ui](https://8bitcn.com) component library.
 
-- **Live concept:** One DM link, one per player. Links never expire. No recovery if lost.
+- **Live concept:** One DM link, one per player. No recovery if lost. Sessions auto-delete if never used within 31 days of creation, or not accessed for 366 days.
 - **Flow:** DM visits `/session/create` → enters campaign name + member names → receives shareable links → DM manages loot pool / gold; players manage personal inventory, claim from pool, offer items back.
 
 ---
@@ -97,6 +97,7 @@ Four tables, auto-created on first request via `migrate()`:
 | currency_type | TEXT | `'dnd'` or `'wealth'` |
 | dm_role | TEXT | e.g. `'Dungeon Master'`, `'Game Master'` |
 | party_gold | INTEGER | Shared party gold (in copper pieces) |
+| last_accessed_at | TIMESTAMPTZ | Updated on dashboard refresh (null = never accessed) |
 | created_at | TIMESTAMPTZ | |
 
 ### `members`
@@ -150,13 +151,13 @@ Creates a session + member records. Returns session, DM URL, and member URLs.
 Add an item. DM adds to party pool (qty>1 splits into individual records). Players add to personal inventory (quantity preserved as stack).
 
 ### PATCH `/api/items`
-Actions: `claim` (player takes from pool — session-scoped to prevent cross-session IDOR), `offer` (player gives to pool — qty>1 splits), `update` (edit fields).
+Actions: `claim` (player takes from pool — session-scoped to prevent cross-session IDOR), `offer` (player gives to pool — qty>1 splits), `update` (edit fields — validated: `quantity` clamped to 1–100, `type` checked against enum, `name`/`description` length-limited, unknown fields rejected).
 
 ### DELETE `/api/items`
 Remove an item. Auth via `dmToken` (DM) or `token` (player).
 
 ### PATCH `/api/gold`
-Actions: `split` (DM splits evenly among members), `give` (DM gives to specific member), `adjust` (player adjusts own gold), `party_adjust` (add/subtract party gold), `transfer_to_pool` (player donates gold to party pool), `transfer_from_pool` (player takes gold from party pool). All amounts in copper pieces. Transfers use CTEs (`WITH deduct AS ...`) to deduct and credit atomically, preventing double-spend. Regular adjustments use `GREATEST(0, col + delta)` to prevent negative balances.
+Actions: `split` (DM splits evenly among members), `give` (DM gives to specific member), `adjust` (player adjusts own gold), `party_adjust` (DM-only: add/subtract party gold), `transfer_to_pool` (player donates gold to party pool), `transfer_from_pool` (player takes gold from party pool). All amounts in copper pieces. `party_adjust` is restricted to DM tokens only — players must use `transfer_to_pool`/`transfer_from_pool` which deduct from their own balance, preventing infinite gold minting. Transfers use CTEs (`WITH deduct AS ...`) to deduct and credit atomically, preventing double-spend. Regular adjustments use `GREATEST(0, col + delta)` to prevent negative balances.
 
 ### POST `/api/members`
 DM adds a new member to the session.
@@ -169,6 +170,13 @@ Dashboard data refresh endpoint for polling. Accepts `token` and `role` (player/
 
 ### GET `/api/activity`
 Session activity log. Accepts `token` and `role` (player/dm) query params. Returns the 50 most recent `ActivityEntry` records for the session. Used by the ActivityLog component on both dashboards.
+
+### GET `/api/cleanup`
+Session cleanup endpoint, invoked daily by Vercel Cron. Deletes sessions matching **either** criterion:
+1. **Never-used within 31 days of creation** — session is >31 days old AND has no items, no activity_log entries (except `session_create`), and no members added after session creation. Catches sessions that were created but never actually played.
+2. **Not accessed in 366+ days** — `last_accessed_at` is older than 366 days (long-dormant session).
+
+Protected by `CRON_SECRET` env var (Vercel Cron sends `Authorization: Bearer <CRON_SECRET>` automatically). Rejects requests if `CRON_SECRET` is not configured. Returns `{ deleted: number }`.
 
 ---
 
@@ -202,7 +210,7 @@ Conversion helpers: `toCp()`, `fromCp()`, `formatCurrency()` in `GoldPanel.tsx`.
 ### Rendering Architecture
 - **Server components** in `app/*/page.tsx` fetch initial data, then pass it as props to **client components** (`'use client'`).
 - Client components manage their own state with `useState`, making API calls and optimistically updating local state.
-- **Optimistic updates with rollback:** All mutating actions apply state changes immediately, then roll back on API failure (e.g., claim item → remove from pool + add to inventory; if API fails → reverse both). This prevents the UI from feeling stuck while waiting for network responses.
+- **Optimistic updates with rollback:** All mutating actions apply state changes immediately, then roll back on API failure (e.g., claim item → remove from pool + add to inventory; if API fails → reverse both). Offer item also optimistically adds the item to the party pool (with temporary `__opt_` IDs) and replaces them with real server data on success. This prevents the UI from feeling stuck while waiting for network responses.
 - **Auto-polling:** Both dashboards and the ActivityLog component poll their respective endpoints every 30 seconds. Polling is skipped while actions are in-flight (`loading === true`) to avoid overwriting optimistic updates with stale server data, and also skipped when the tab is not visible (`document.visibilityState !== 'visible'`) to avoid unnecessary network traffic. A manual ↻ refresh button is also provided on both dashboards.
 - No global state management library — all state is component-local.
 - **`otherMembers` state:** PlayerDashboard tracks other members' data as state (not just initial props), so it updates on refresh/poll.
@@ -229,7 +237,9 @@ Conversion helpers: `toCp()`, `fromCp()`, `formatCurrency()` in `GoldPanel.tsx`.
 - **Transactions:** Multi-step operations (`offerItemSplit`, `splitGold`) use `sql.connect()` to acquire a pooled client, then `BEGIN`/`COMMIT`/`ROLLBACK` to ensure atomicity. Always `release()` the client in a `finally` block.
 - **Session scoping:** Member-scoped updates require `sessionId` to prevent cross-session IDOR. Applies to `adjustMemberGold`, `claimItem`, and transfer operations.
 - **Batch updates:** `splitGold` uses a single `UPDATE ... WHERE session_id = $1` instead of N individual UPDATEs.
-- **Rate limiting:** All API routes enforce rate limiting via `checkRateLimit()` at the top of each handler, with per-route limits (e.g., 10 session creates/min, 30 item deletes/min, 60 gold patches/min, 120 refreshes/min). Uses in-memory `Map` — resets on Vercel cold starts, not shared across instances.
+- **Row locking:** `offerItemSplit` uses `SELECT ... FOR UPDATE` within its transaction to prevent race conditions when offering a quantity>1 item concurrently.
+- **Input validation:** Item updates (`PATCH /api/items`, `action: 'update'`) are validated server-side: `quantity` is clamped to 1–100, `type` must be one of the CHECK constraint values, `name`/`description` are length-limited, and unknown fields are rejected. This prevents DB constraint violations and data corruption.
+- **Rate limiting:** All API routes enforce rate limiting via `checkRateLimit()` at the top of each handler, with per-route limits (e.g., 10 session creates/min, 30 item deletes/min, 60 gold patches/min, 120 refreshes/min). Uses in-memory `Map` — persists across warm starts in the same Vercel lambda container, resets on cold starts. Not shared across instances.
 - **Activity logging:** All API routes call `logActivity()` after successful mutations, writing human-readable entries to the `activity_log` table. The `getItemById` and `getMemberById` helpers look up names before logging (avoids UUIDs in the log). The `actorName` variable is resolved during auth and reused for all log entries in a handler.
 - **Item search/filter:** The `ItemFilter` component provides text search + type filtering on party pool tabs. The `filterItems()` helper is a pure function that filters by name/description match and type. Computed once per render via `const filteredPool = filterItems(...)` to avoid double computation.
 - **Responsive 8-bit typography:** CSS utility classes `text-8bit-lg`, `text-8bit-md`, `text-8bit-sm`, `text-8bit-xs` in `globals.css` scale up on mobile (`@media max-width: 640px`) for better readability. Used instead of raw `text-[10px]` / `text-[8px]` classes throughout components.
@@ -248,7 +258,7 @@ Conversion helpers: `toCp()`, `fromCp()`, `formatCurrency()` in `GoldPanel.tsx`.
 ## Environment & Deployment
 
 - **Local dev:** `pnpm dev` — requires Vercel Postgres connection.
-- **Required env vars:** `POSTGRES_URL` (validated at startup — app throws if missing). See `.env.example` for template. `POSTGRES_PRISMA_URL` and `POSTGRES_URL_NON_POOLING` are auto-configured when linked to a Vercel project.
+- **Required env vars:** `POSTGRES_URL` (validated at startup — app throws if missing). See `.env.example` for template. `CRON_SECRET` is required for the cleanup cron endpoint (set in Vercel Environment Variables). `POSTGRES_PRISMA_URL` and `POSTGRES_URL_NON_POOLING` are auto-configured when linked to a Vercel project.
 - **Build:** `pnpm build` / `pnpm start`
 - **Lint:** `pnpm lint` (Next.js ESLint)
 - **Test:** `pnpm test` (Vitest)
@@ -262,7 +272,9 @@ Conversion helpers: `toCp()`, `fromCp()`, `formatCurrency()` in `GoldPanel.tsx`.
 2. **`dm_role` column:** Added via `ALTER TABLE IF NOT EXISTS` in migration, not in original `CREATE TABLE` — indicates iterative schema development.
 3. **`offerItemSplit` function:** Wrapped in a database transaction (`BEGIN`/`COMMIT`/`ROLLBACK`) using `sql.connect()` for a dedicated client. The `qty === 1` branch uses `client.sql` directly instead of calling `offerItem()` because `offerItem()` uses the global `sql` pool and would escape the transaction.
 4. **`updateItem` function:** Builds dynamic SQL SET clauses with positional parameters — the only place where `sql.query()` is used for updates.
-5. **Rate limiter on serverless:** The in-memory rate limiter (`lib/rateLimit.ts`) uses a `Map` that resets on Vercel cold starts and is not shared across instances. It provides basic same-instance protection. For production-grade rate limiting across instances, use Upstash Redis or similar.
+5. **Rate limiter on serverless:** The in-memory rate limiter (`lib/rateLimit.ts`) uses a `Map` that persists across warm starts within the same Vercel lambda container, but resets on cold starts and is not shared across instances. It provides per-instance protection. For production-grade rate limiting across instances, use Upstash Redis or similar.
+6. **`after()` for background DB writes:** `touchSessionAccess()` is wrapped in Next.js `after()` (from `next/server`) instead of floating promises with `.catch()`. This ensures the DB write completes even after the response is sent in Vercel's serverless environment.
+7. **Player `party_adjust` removed:** The `party_adjust` gold action was available to both DM and player tokens, allowing players to mint infinite party gold. It is now DM-only — players must use `transfer_to_pool`/`transfer_from_pool` which deduct from their own balance.
 
 ---
 
@@ -273,7 +285,7 @@ ItemType = 'Weapon' | 'Armor' | 'Consumable' | 'Other'
 
 Item { id, sessionId, ownerId, name, description, type, private, offeredToParty, quantity, createdAt }
 Member { id, sessionId, name, token, publicGold, privateGold, createdAt }
-Session { id, dmToken, name, currencyType, dmRole, partyGold, createdAt }
+Session { id, dmToken, name, currencyType, dmRole, partyGold, lastAccessedAt, createdAt }
 CreateSessionPayload { sessionName, currencyType, dmRole, memberNames }
 CreateSessionResponse { session, dmUrl, memberLinks[] }
 ActivityEntry { id, sessionId, memberId, actorName, action, details, createdAt }
@@ -299,3 +311,4 @@ SavedSession { sessionId, sessionName, dmRole, dmToken, savedAt }  ← lib/saved
 - `vercel` CLI
 - Vitest + @testing-library/react + jsdom — test framework (32 tests across 5 files)
 - `pnpm test` to run, `pnpm test:watch` for watch mode
+- **Session cleanup:** Vercel Cron hits `/api/cleanup` daily at 3 AM UTC (configured in `vercel.json`). Sessions are cascade-deleted if: (1) never used within 31 days of creation (no items, no activity beyond creation, no members added after creation), OR (2) not accessed in 366 days. The `touchSessionAccess()` query updates `last_accessed_at` on initial page load and every dashboard refresh.

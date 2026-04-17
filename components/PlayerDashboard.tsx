@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/8bit/tabs'
-import { Badge } from '@/components/ui/8bit/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { ItemCard } from '@/components/inventory/ItemCard'
 import { AddItemForm } from '@/components/inventory/AddItemForm'
@@ -129,8 +128,13 @@ export function PlayerDashboard({
   // Offer to party: if qty > 1, creates N separate items server-side
   const offerItem = async (item: Item) =>
   {
-    // Optimistic update
+    // Optimistic update: remove from inventory, add to party pool
+    const optimisticPoolItem = { ...item, ownerId: null, offeredToParty: true, private: false }
     setMyItems(prev => prev.filter(i => i.id !== item.id))
+    setPartyPool(prev => item.quantity > 1
+      ? [...Array(item.quantity).fill(null).map((_, i) => ({ ...optimisticPoolItem, id: `__opt_${item.id}_${i}` })), ...prev]
+      : [optimisticPoolItem, ...prev]
+    )
 
     const res = await fetch('/api/items', {
       method: 'PATCH',
@@ -139,11 +143,13 @@ export function PlayerDashboard({
     })
     const data = await res.json()
     if (!res.ok) {
-      // Roll back
+      // Roll back both
       setMyItems(prev => [item, ...prev])
+      setPartyPool(prev => prev.filter(i => !i.id.startsWith('__opt_')))
       return
     }
-    setPartyPool(prev => [...data.items, ...prev])
+    // Replace optimistic items with real server data
+    setPartyPool(prev => [...data.items, ...prev.filter(i => !i.id.startsWith('__opt_'))])
   }
 
   const togglePrivate = async (item: Item) =>

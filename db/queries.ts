@@ -16,6 +16,7 @@ function mapSession(row: Record<string, any>): Session {
     dmRole: row.dm_role,
     partyGold: row.party_gold,
     createdAt: row.created_at,
+    lastAccessedAt: row.last_accessed_at ?? null,
   }
 }
 
@@ -60,6 +61,55 @@ export async function getMemberById(memberId: string): Promise<Member | null> {
     SELECT * FROM members WHERE id = ${memberId} LIMIT 1
   `
   return rows[0] ? mapMember(rows[0]) : null
+}
+
+// ── Session access tracking (for cleanup) ────────────────────
+
+export async function touchSessionAccess(sessionId: string): Promise<void> {
+  await sql`
+    UPDATE sessions SET last_accessed_at = NOW() WHERE id = ${sessionId}
+  `
+}
+
+// Delete sessions that are expired based on two independent criteria:
+// 1. Never-used: session is >31 days old AND has no data (items, activity_log entries,
+//    or members beyond the initial ones created at session creation). Catches sessions
+//    that were created but never actually played.
+// 2. Long-dormant: session hasn't been accessed in 366+ days.
+// Returns the number of deleted sessions.
+export async function cleanupExpiredSessions(): Promise<number> {
+  const { rowCount } = await sql`
+    DELETE FROM sessions
+    WHERE id IN (
+      SELECT s.id FROM sessions s
+      WHERE
+        -- Criterion 1: never-used session (>31 days old with no meaningful data)
+        (
+          s.created_at < NOW() - INTERVAL '31 days'
+          AND NOT EXISTS (
+            SELECT 1 FROM items i
+            WHERE i.session_id = s.id
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM activity_log a
+            WHERE a.session_id = s.id
+            AND a.action != 'session_create'
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM members m
+            WHERE m.session_id = s.id
+            AND m.created_at > s.created_at + INTERVAL '1 second'
+          )
+        )
+      OR
+        -- Criterion 2: not accessed in 366+ days (long-dormant)
+        -- COALESCE falls back to created_at for sessions predating this feature
+        (
+          COALESCE(s.last_accessed_at, s.created_at) < NOW() - INTERVAL '366 days'
+        )
+    )
+  `
+  return rowCount ?? 0
 }
 
 // ── Token resolution ──────────────────────────────────────────
@@ -195,7 +245,7 @@ export async function offerItemSplit(itemId: string, memberId: string): Promise<
     await client.sql`BEGIN`
 
     const { rows } = await client.sql`
-      SELECT * FROM items WHERE id = ${itemId} AND owner_id = ${memberId}
+      SELECT * FROM items WHERE id = ${itemId} AND owner_id = ${memberId} FOR UPDATE
     `
     if (!rows[0]) {
       await client.sql`ROLLBACK`

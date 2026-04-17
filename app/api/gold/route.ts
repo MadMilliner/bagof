@@ -74,13 +74,9 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ success: true })
       }
 
-      if (action === 'party_adjust') {
-        const { deltaCp } = body
-        if (!Number.isFinite(deltaCp)) return NextResponse.json({ error: 'deltaCp required' }, { status: 400 })
-        await adjustPartyGold(member.sessionId, deltaCp)
-        await logActivity(member.sessionId, member.id, member.name, 'gold_party_adjust', `${deltaCp > 0 ? '+' : ''}${deltaCp} cp to party pool`)
-        return NextResponse.json({ success: true })
-      }
+      // NOTE: 'party_adjust' is intentionally DM-only.
+      // Players must use 'transfer_to_pool' or 'transfer_from_pool' which
+      // deduct from their own balance, preventing infinite gold minting.
 
       if (action === 'transfer_to_pool') {
         const { amountCp } = body

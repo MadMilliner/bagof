@@ -31,6 +31,7 @@ export interface Session {
   dmRole: string
   partyGold: number
   createdAt: string
+  lastAccessedAt: string | null
 }
 
 export interface CreateSessionPayload {

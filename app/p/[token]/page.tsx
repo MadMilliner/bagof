@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation'
+import { after } from 'next/server'
 import {
   getMemberByToken,
   getMemberItems,
   getPartyPool,
   getSessionById,
   getOtherMembersPublicItems,
+  touchSessionAccess,
 } from '@/db/queries'
 import { PlayerDashboard } from '@/components/PlayerDashboard'
 import { Metadata } from 'next'
@@ -29,6 +31,9 @@ export default async function PlayerPage({ params }: { params: Promise<{ token: 
     getPartyPool(member.sessionId),
     getOtherMembersPublicItems(member.sessionId, member.id),
   ])
+
+  // Update last-accessed timestamp (survives serverless lifecycle)
+  after(() => touchSessionAccess(member.sessionId))
 
   if (!session) notFound()
 

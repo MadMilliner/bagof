@@ -24,6 +24,7 @@ import
 import { LuLink } from "react-icons/lu"
 import type { Item, Member, Session, ItemType } from '@/types'
 import { useEffect } from 'react'
+import { saveSession, getSavedSessions } from '@/lib/savedSessions'
 
 interface DMDashboardProps
 {
@@ -55,6 +56,19 @@ export function DMDashboard({
   {
     setOrigin(window.location.origin)
     setMounted(true)
+    // Auto-save DM link to localStorage for backward compatibility
+    // with sessions created before this feature existed
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- props are stable server-rendered values
+    const existing = getSavedSessions()
+    if (!existing.some(s => s.sessionId === session.id)) {
+      saveSession({
+        sessionId: session.id,
+        sessionName: session.name,
+        dmRole: session.dmRole,
+        dmToken: dmToken,
+        savedAt: new Date().toISOString(),
+      })
+    }
   }, [])
 
   // ── Polling: auto-refresh every 30s ──

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
-import { getDMSession, getAllSessionItems, getSessionMembers } from '@/db/queries'
+import { after } from 'next/server'
+import { getDMSession, getAllSessionItems, getSessionMembers, touchSessionAccess } from '@/db/queries'
 import { DMDashboard } from '@/components/DMDashboard'
 import { Metadata } from 'next'
 
@@ -19,6 +20,9 @@ export default async function DMPage({ params }: { params: Promise<{ token: stri
     getAllSessionItems(session.id),
     getSessionMembers(session.id),
   ])
+
+  // Update last-accessed timestamp (survives serverless lifecycle)
+  after(() => touchSessionAccess(session.id))
 
   return (
     <DMDashboard

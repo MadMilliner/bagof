@@ -6,9 +6,10 @@
 const store = new Map<string, { count: number; resetTime: number }>()
 
 // Clean up expired entries periodically (every 60s).
-// NOTE: This only helps during long-running dev server sessions.
-// On Vercel serverless, each invocation gets a fresh module scope,
-// so the Map resets naturally on cold starts anyway.
+// NOTE: This only helps during warm server instances.
+// On Vercel serverless, the Map persists across requests within the same
+// lambda container (warm starts) but resets on cold starts. It provides
+// per-instance protection — not shared across instances.
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
     const now = Date.now()

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { after } from 'next/server'
 import {
   getMemberByToken,
   getDMSession,
@@ -8,6 +9,7 @@ import {
   getSessionMembers,
   getAllSessionItems,
   getSessionById,
+  touchSessionAccess,
 } from '@/db/queries'
 import { checkRateLimit } from '@/lib/rateLimit'
 
@@ -37,6 +39,9 @@ export async function GET(req: NextRequest) {
         getSessionMembers(session.id),
       ])
 
+      // Update last-accessed timestamp (survives serverless lifecycle)
+      after(() => touchSessionAccess(session.id))
+
       return NextResponse.json({ session, items, members })
     }
 
@@ -52,6 +57,9 @@ export async function GET(req: NextRequest) {
     ])
 
     if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+
+    // Update last-accessed timestamp (survives serverless lifecycle)
+    after(() => touchSessionAccess(session.id))
 
     return NextResponse.json({
       session,

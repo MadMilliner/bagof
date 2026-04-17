@@ -10,7 +10,7 @@ interface DiceRollerProps {
   onClose: () => void
 }
 
-function rollDice(notation: string) {
+export function rollDice(notation: string) {
   // Regex: 1d20, 2d6+4, 1d8-1
   const regex = /^(\d+)d(\d+)(?:([+-])(\d+))?$/i
   const match = notation.match(regex)

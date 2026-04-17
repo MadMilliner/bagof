@@ -108,7 +108,7 @@ export function ActivityLog({ token, role }: ActivityLogProps) {
   }
 
   return (
-    <div className="space-y-2">
+    <div id="activity-log" className="space-y-2">
       {visible.map(entry => {
         const meta = getMeta(entry.action)
         return (
@@ -140,6 +140,7 @@ export function ActivityLog({ token, role }: ActivityLogProps) {
       {entries.length > 5 && (
         <div className="text-center pt-1">
           <Button
+            id="activity-show-all-btn"
             size="sm"
             variant="outline"
             onClick={() => setExpanded(prev => !prev)}

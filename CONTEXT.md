@@ -5,7 +5,7 @@
 **Bag of** is a shared party loot manager for tabletop RPGs (TTRPGs). It allows a DM to create a session, distribute unique links to players, and collaboratively manage party inventory and gold — no accounts or passwords required. The aesthetic is retro 8-bit, using the [8bitcn/ui](https://8bitcn.com) component library.
 
 - **Live concept:** One DM link, one per player. No recovery if lost. Sessions auto-delete if never used within 31 days of creation, or not accessed for 366 days.
-- **Flow:** DM visits `/session/create` → enters campaign name + member names → receives shareable links → DM manages loot pool / gold; players manage personal inventory, claim from pool, offer items back.
+- **Flow:** DM visits `/` → enters campaign name + member names → receives shareable links → DM manages loot pool / gold; players manage personal inventory, claim from pool, offer items back.
 
 ---
 
@@ -39,11 +39,10 @@
     /activity/route.ts      ← GET: session activity log
   /dm/[token]/page.tsx      ← DM dashboard (server component → client)
   /p/[token]/page.tsx       ← Player dashboard (server component → client)
-  /session/create/page.tsx ← Session creation page
+  page.tsx                  ← Home page: session creation form
   globals.css               ← Tailwind + CSS custom properties (light/dark)
   layout.tsx                ← Root layout: font, theme, footer
   not-found.tsx             ← 404 page
-  page.tsx                  ← Redirects to /session/create
 
 /components
   /ui/8bit/                 ← Inlined 8bitcn/ui primitives
@@ -76,7 +75,7 @@
 /lib
   utils.ts                   ← `cn()` helper (clsx + tailwind-merge)
   rateLimit.ts               ← In-memory rate limiter (IP-based, per-route limits)
-  savedSessions.ts           ← localStorage persistence for DM session links
+  savedSessions.ts           ← localStorage persistence for DM session links + player links
 
 /types
   index.ts                   ← Shared TypeScript types: Item, Member, Session, etc.
@@ -226,7 +225,7 @@ Conversion helpers: `toCp()`, `fromCp()`, `formatCurrency()` in `GoldPanel.tsx`.
 - **FOUC prevention:** An inline `<script>` in `layout.tsx` reads `localStorage` and sets the `dark` class on `<html>` before React hydrates, preventing flash of wrong theme.
 
 ### Naming Conventions
-- Files: PascalCase for components (`DMDashboard.tsx`), kebab-case for routes (`/session/create`).
+- Files: PascalCase for components (`DMDashboard.tsx`), kebab-case for routes (`/dm/[token]`).
 - Exports: named exports (no default exports for components).
 - Types: interfaces (not type aliases) in `types/index.ts`.
 
@@ -243,6 +242,8 @@ Conversion helpers: `toCp()`, `fromCp()`, `formatCurrency()` in `GoldPanel.tsx`.
 - **Activity logging:** All API routes call `logActivity()` after successful mutations, writing human-readable entries to the `activity_log` table. The `getItemById` and `getMemberById` helpers look up names before logging (avoids UUIDs in the log). The `actorName` variable is resolved during auth and reused for all log entries in a handler.
 - **Item search/filter:** The `ItemFilter` component provides text search + type filtering on party pool tabs. The `filterItems()` helper is a pure function that filters by name/description match and type. Computed once per render via `const filteredPool = filterItems(...)` to avoid double computation.
 - **Responsive 8-bit typography:** CSS utility classes `text-8bit-lg`, `text-8bit-md`, `text-8bit-sm`, `text-8bit-xs` in `globals.css` scale up on mobile (`@media max-width: 640px`) for better readability. Used instead of raw `text-[10px]` / `text-[8px]` classes throughout components.
+- **Saved links (localStorage):** Both DM and player dashboard links are auto-saved to localStorage on every visit (`DMDashboard` → `saveSession()`, `PlayerDashboard` → `savePlayerLink()`). This ensures backward compatibility with sessions created before this feature existed, and keeps names/roles up-to-date on revisit (since `saveSession`/`savePlayerLink` deduplicate by replacing the existing entry). The home page (`CreateSessionForm`) displays two separate sections: **"Your campaigns"** (DM links, with destructive badge showing dmRole) and **"Your characters"** (player links, with ⚔️ prefix and secondary badge showing session name). Each card has an Open button, Copy Link, and Remove with confirmation dialog. DM sessions are keyed by `sessionId` in `bag-of-saved-sessions`; player links are keyed by `memberId` in `bag-of-saved-players`.
+- **Exported pure functions:** `rollDice()` from `DiceRoller.tsx` and `formatDescription()` from `ItemCard.tsx` are exported (not just module-private) to enable unit testing. These are stable, side-effect-free functions.
 
 ### Item Quantity Handling
 - Party pool items are always quantity=1 (split into individual records when added by DM or offered by player).
@@ -261,7 +262,7 @@ Conversion helpers: `toCp()`, `fromCp()`, `formatCurrency()` in `GoldPanel.tsx`.
 - **Required env vars:** `POSTGRES_URL` (validated at startup — app throws if missing). See `.env.example` for template. `CRON_SECRET` is required for the cleanup cron endpoint (set in Vercel Environment Variables). `POSTGRES_PRISMA_URL` and `POSTGRES_URL_NON_POOLING` are auto-configured when linked to a Vercel project.
 - **Build:** `pnpm build` / `pnpm start`
 - **Lint:** `pnpm lint` (Next.js ESLint)
-- **Test:** `pnpm test` (Vitest)
+- **Test:** `pnpm test` (Vitest) — 108 tests across 10 files
 - **Deploy:** Designed for Vercel (uses `@vercel/postgres`).
 
 ---
@@ -290,7 +291,8 @@ CreateSessionPayload { sessionName, currencyType, dmRole, memberNames }
 CreateSessionResponse { session, dmUrl, memberLinks[] }
 ActivityEntry { id, sessionId, memberId, actorName, action, details, createdAt }
 
-SavedSession { sessionId, sessionName, dmRole, dmToken, savedAt }  ← lib/savedSessions.ts (localStorage)
+SavedSession { sessionId, sessionName, dmRole, dmToken, savedAt }  ← lib/savedSessions.ts (localStorage: `bag-of-saved-sessions`)
+SavedPlayerLink { memberId, sessionId, sessionName, memberName, memberToken, dmRole, savedAt }  ← lib/savedSessions.ts (localStorage: `bag-of-saved-players`)
 ```
 
 ---
@@ -309,6 +311,7 @@ SavedSession { sessionId, sessionName, dmRole, dmToken, savedAt }  ← lib/saved
 ### Dev
 - TypeScript 5, Tailwind CSS 3, PostCSS, Autoprefixer
 - `vercel` CLI
-- Vitest + @testing-library/react + jsdom — test framework (32 tests across 5 files)
+- Vitest + @testing-library/react + jsdom — test framework (108 tests across 10 files)
 - `pnpm test` to run, `pnpm test:watch` for watch mode
+- Test files: `__tests__/lib/utils.test.ts`, `__tests__/lib/rateLimit.test.ts`, `__tests__/lib/savedSessions.test.ts`, `__tests__/components/DiceRoller.test.ts`, `__tests__/components/ItemCard.test.tsx`, `__tests__/components/GoldPanel.test.ts`, `__tests__/components/ItemFilter.test.ts`, `__tests__/api/cleanup.test.ts`, `__tests__/api/gold.test.ts`, `__tests__/api/items.test.ts`
 - **Session cleanup:** Vercel Cron hits `/api/cleanup` daily at 3 AM UTC (configured in `vercel.json`). Sessions are cascade-deleted if: (1) never used within 31 days of creation (no items, no activity beyond creation, no members added after creation), OR (2) not accessed in 366 days. The `touchSessionAccess()` query updates `last_accessed_at` on initial page load and every dashboard refresh.

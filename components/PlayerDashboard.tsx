@@ -11,6 +11,8 @@ import { ActivityLog } from '@/components/ActivityLog'
 import { ThemeToggle } from '@/components/ThemeProvider'
 import { Button } from '@/components/ui/8bit/button'
 import type { Item, Member, Session, ItemType } from '@/types'
+import { savePlayerLink } from '@/lib/savedSessions'
+import { BagOfLogo } from '@/components/BagOfLogo'
 
 interface OtherMember
 {
@@ -53,6 +55,17 @@ export function PlayerDashboard({
   useEffect(() =>
   {
     setMounted(true)
+    // Auto-save player link to localStorage (updates name if changed)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- props are stable server-rendered values
+    savePlayerLink({
+      memberId: member.id,
+      sessionId: session.id,
+      sessionName: session.name,
+      memberName: member.name,
+      memberToken: memberToken,
+      dmRole: session.dmRole,
+      savedAt: new Date().toISOString(),
+    })
   }, [])
 
   // ── Polling: auto-refresh every 30s to stay in sync with DM/other players ──
@@ -286,18 +299,18 @@ export function PlayerDashboard({
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background p-4 max-w-2xl mx-auto">
-      <header className="mb-6">
+    <div id="player-dashboard" className="min-h-screen bg-background p-4 max-w-2xl mx-auto">
+      <header id="player-header" className="mb-6">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="font-press-start text-2xl"></span>
-            <div>
-              <p className="font-press-start text-8bit-sm text-muted-foreground">Bag of</p>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="font-press-start text-2xl shrink-0"></span>
+            <div className="min-w-0">
+              <BagOfLogo />
               {isEditingName ? (
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 min-w-0">
                   <input
                     autoFocus
-                    className="font-press-start text-xs border-2 border-black dark:border-white bg-background px-1 py-0.5 w-full outline-none"
+                    className="font-press-start text-xs border-2 border-black dark:border-white bg-background px-1 py-0.5 w-full min-w-0 outline-none"
                     value={memberName}
                     onChange={e => setMemberName(e.target.value)}
                     onBlur={updateName}
@@ -306,18 +319,18 @@ export function PlayerDashboard({
                 </div>
               ) : (
                 <h1
-                  className="font-press-start text-lg leading-tight mt-1 cursor-pointer hover:text-muted-foreground transition-colors flex items-center gap-2"
+                  className="font-press-start text-lg leading-tight mt-1 cursor-pointer hover:text-muted-foreground transition-colors flex items-center gap-2 min-w-0"
                   onClick={() => setIsEditingName(true)}
                 >
-                  {memberName}
-                  <span className="text-8bit-sm text-muted-foreground opacity-50">edit</span>
+                  <span className="truncate">{memberName}</span>
+                  <span className="text-8bit-sm text-muted-foreground opacity-50 shrink-0">edit</span>
                 </h1>
               )}
-              <p className="font-press-start text-8bit-sm text-muted-foreground mt-1">{session.name}</p>
+              <p className="font-press-start text-8bit-sm text-muted-foreground mt-1 truncate">{session.name}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button className='refresh-data' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
+          <div className="flex items-center gap-2 shrink-0">
+            <Button id="player-refresh-btn" className='refresh-data' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
               {refreshing ? '⟳' : '↻'}
             </Button>
             <ThemeToggle />
@@ -325,20 +338,21 @@ export function PlayerDashboard({
         </div>
       </header>
 
-      <Tabs defaultValue="inventory">
+      <Tabs id="player-tabs" defaultValue="inventory">
         <TabsList>
-          <TabsTrigger className="grow" value="inventory">My Inventory</TabsTrigger>
-          <TabsTrigger className="grow" value="pool">
+          <TabsTrigger id="player-tab-inventory" className="grow" value="inventory">My Inventory</TabsTrigger>
+          <TabsTrigger id="player-tab-pool" className="grow" value="pool">
             Party Bag {partyPool.length > 0 && `(${partyPool.length})`}
           </TabsTrigger>
-          <TabsTrigger className="grow" value="others">
+          <TabsTrigger id="player-tab-others" className="grow" value="others">
             Other Members {totalOtherItems > 0 && `(${totalOtherItems})`}
           </TabsTrigger>
-          <TabsTrigger className="grow" value="activity">Activity</TabsTrigger>
+          <TabsTrigger id="player-tab-activity" className="grow" value="activity">Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inventory">
           <GoldPanel
+            id="player-my-gold"
             publicGold={gold.public}
             privateGold={gold.private}
             showPrivate
@@ -371,6 +385,7 @@ export function PlayerDashboard({
 
         <TabsContent value="pool">
           <GoldPanel
+            id="player-party-bag-gold"
             publicGold={gold.party}
             currencyType={session.currencyType}
             titleOverride={session.currencyType === 'wealth' ? "Party Bag Wealth" : "Party Bag Gold"}
@@ -380,6 +395,7 @@ export function PlayerDashboard({
               Transfer Currency
             </p>
             <CurrencyInput
+              idPrefix="transfer-to-pool"
               label="Donate to Party Bag"
               onAdjust={transferToPool}
               loading={loading}
@@ -387,6 +403,7 @@ export function PlayerDashboard({
             />
             <div className="border-t-2 border-black dark:border-white pt-2">
               <CurrencyInput
+                idPrefix="transfer-from-pool"
                 label="Take from Party Bag"
                 onAdjust={transferFromPool}
                 loading={loading}

@@ -107,6 +107,15 @@ div input:focus {
   filter: contrast(75%);
 }
 
+/* Hide scrollbar for horizontal tab scroll on mobile */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 .refresh-data {
   font-size: 1.5rem;
   align-content: center;

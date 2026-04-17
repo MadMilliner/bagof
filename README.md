@@ -60,7 +60,7 @@ pnpm test
 
 ## How it works
 
-1. **DM visits `/session/create`** — enters a campaign name and party member names
+1. **DM visits `/`** — enters a campaign name and party member names
 2. **Links are generated** — one DM link, one per player. No accounts, no passwords.
 3. **DM link** (`/dm/:token`) — add loot to party pool, split gold, view all inventories, activity log
 4. **Player links** (`/p/:token`) — manage personal inventory, claim from party pool, transfer gold
@@ -80,11 +80,11 @@ pnpm test
     /activity/route.ts       ← GET: session activity log
   /dm/[token]/page.tsx       ← DM dashboard (server component → client)
   /p/[token]/page.tsx        ← Player dashboard (server component → client)
-  /session/create/page.tsx   ← Session creation form
+  page.tsx                   ← Session creation form (home page)
   globals.css                ← Tailwind + CSS variables (light/dark themes)
   layout.tsx                 ← Root layout: font, theme, footer
   not-found.tsx              ← 404 page
-  page.tsx                   ← Redirects to /session/create
+
 
 /components
   /ui/8bit/                  ← 8bitcn components (inlined, no CLI needed)

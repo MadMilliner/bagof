@@ -24,7 +24,8 @@ import
 import { LuLink } from "react-icons/lu"
 import type { Item, Member, Session, ItemType } from '@/types'
 import { useEffect } from 'react'
-import { saveSession, getSavedSessions } from '@/lib/savedSessions'
+import { saveSession } from '@/lib/savedSessions'
+import { BagOfLogo } from '@/components/BagOfLogo'
 
 interface DMDashboardProps
 {
@@ -56,19 +57,15 @@ export function DMDashboard({
   {
     setOrigin(window.location.origin)
     setMounted(true)
-    // Auto-save DM link to localStorage for backward compatibility
-    // with sessions created before this feature existed
+    // Auto-save DM link to localStorage (updates name/role if changed)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- props are stable server-rendered values
-    const existing = getSavedSessions()
-    if (!existing.some(s => s.sessionId === session.id)) {
-      saveSession({
-        sessionId: session.id,
-        sessionName: session.name,
-        dmRole: session.dmRole,
-        dmToken: dmToken,
-        savedAt: new Date().toISOString(),
-      })
-    }
+    saveSession({
+      sessionId: session.id,
+      sessionName: session.name,
+      dmRole: session.dmRole,
+      dmToken: dmToken,
+      savedAt: new Date().toISOString(),
+    })
   }, [])
 
   // ── Polling: auto-refresh every 30s ──
@@ -233,26 +230,26 @@ export function DMDashboard({
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background p-4 max-w-2xl mx-auto">
-      <header className="mb-6">
+    <div id="dm-dashboard" className="min-h-screen bg-background p-4 max-w-2xl mx-auto">
+      <header id="dm-header" className="mb-6">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="font-press-start text-2xl"></span>
-            <div>
-              <p className="font-press-start text-8bit-sm text-muted-foreground">Bag of</p>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="font-press-start text-2xl shrink-0"></span>
+            <div className="min-w-0">
+              <BagOfLogo />
               <h1 className="font-press-start text-8bit-lg leading-tight mt-1">{session.dmRole}</h1>
-              <p className="font-press-start text-8bit-sm text-muted-foreground mt-1">{session.name}</p>
+              <p className="font-press-start text-8bit-sm text-muted-foreground mt-1 truncate">{session.name}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button className='refresh-data' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
+          <div className="flex items-center gap-2 shrink-0">
+            <Button id="dm-refresh-btn" className='refresh-data' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
               {refreshing ? '⟳' : '↻'}
             </Button>
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm" title="Share player links">
-                  <LuLink className="h-4 w-4 mr-2" />
-                  Manage Players and Links
+                <Button id="dm-manage-players-btn" variant="outline" size="sm" title="Share player links">
+                  <LuLink className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Manage Players and Links</span>
                 </Button>
               </SheetTrigger>
               <SheetContent>
@@ -267,6 +264,7 @@ export function DMDashboard({
                   <p className="font-press-start text-8bit-sm font-bold mb-3">Add New Member</p>
                   <div className="flex gap-2">
                     <Input
+                      id="dm-new-member-input"
                       placeholder="Player Name"
                       value={newMemberName}
                       onChange={e => setNewMemberName(e.target.value)}
@@ -274,6 +272,7 @@ export function DMDashboard({
                       className="text-8bit-sm h-9"
                     />
                     <Button
+                      id="dm-add-member-btn"
                       size="sm"
                       onClick={handleAddMember}
                       disabled={!newMemberName.trim() || loading}
@@ -293,6 +292,7 @@ export function DMDashboard({
                           className="text-8bit-sm h-8"
                         />
                         <Button
+                          id={`dm-copy-player-link-btn-${m.id}`}
                           size="sm"
                           variant="secondary"
                           className="h-8 text-8bit-sm"
@@ -310,27 +310,28 @@ export function DMDashboard({
                 </div>
               </SheetContent>
             </Sheet>
-            <Badge variant="destructive">{session.dmRole}</Badge>
+            <Badge variant="destructive" className="text-8bit-xs hidden sm:inline-flex">{session.dmRole}</Badge>
             <ThemeToggle />
           </div>
         </div>
       </header>
 
-      <Tabs defaultValue="pool">
+      <Tabs id="dm-tabs" defaultValue="pool">
         <TabsList>
-          <TabsTrigger className='grow' value="pool">
+          <TabsTrigger id="dm-tab-pool" className='grow' value="pool">
             Party Bag {partyPool.length > 0 && `(${partyPool.length})`}
           </TabsTrigger>
-          <TabsTrigger className='grow' value="members">Members</TabsTrigger>
-          <TabsTrigger className='grow' value="gold">
+          <TabsTrigger id="dm-tab-members" className='grow' value="members">Members</TabsTrigger>
+          <TabsTrigger id="dm-tab-gold" className='grow' value="gold">
             {session.currencyType === 'wealth' ? 'Wealth' : 'Gold'}
           </TabsTrigger>
-          <TabsTrigger className='grow' value="activity">Activity</TabsTrigger>
+          <TabsTrigger id="dm-tab-activity" className='grow' value="activity">Activity</TabsTrigger>
         </TabsList>
 
         {/* ── Party Pool ── */}
         <TabsContent value="pool">
           <GoldPanel
+            id="dm-party-bag-gold"
             publicGold={partyGold}
             isDM
             currencyType={session.currencyType}
@@ -405,6 +406,7 @@ export function DMDashboard({
         {/* ── Currency ── */}
         <TabsContent value="gold">
           <GoldPanel
+            id="dm-total-gold"
             publicGold={totalGold}
             isDM
             memberCount={members.length}
@@ -483,42 +485,40 @@ function GiveMemberGold({
         {currencyType === 'wealth' ? (
           <div className="flex gap-1 items-center">
             <Input type="number" min={0} placeholder="0" value={cp}
-              onChange={e => setCp(e.target.value)} className="w-20 text-center" />
-            <span className="font-press-start text-8bit-sm text-muted-foreground mt-1">Wealth</span>
+              onChange={e => setCp(e.target.value)} className="w-full max-w-24 sm:w-20 text-center" />
+            <span className="font-press-start text-8bit-sm text-muted-foreground shrink-0">Wealth</span>
           </div>
         ) : (
-          <div className="flex gap-1 items-center flex-wrap">
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-1 sm:items-center">
             <div className="flex items-center gap-1">
               <Input type="number" min={0} placeholder="0" value={gp}
-                onChange={e => setGp(e.target.value)} className="w-20 text-center" />
-              <span className="font-press-start text-8bit-sm text-yellow-600 dark:text-yellow-400">gp</span>
+                onChange={e => setGp(e.target.value)} className="w-full sm:w-20 text-center" />
+              <span className="font-press-start text-8bit-sm text-yellow-600 dark:text-yellow-400 shrink-0">gp</span>
             </div>
             <div className="flex items-center gap-1">
               <Input type="number" min={0} placeholder="0" value={sp}
-                onChange={e => setSp(e.target.value)} className="w-20 text-center" />
-              <span className="font-press-start text-8bit-sm text-slate-400">sp</span>
+                onChange={e => setSp(e.target.value)} className="w-full sm:w-20 text-center" />
+              <span className="font-press-start text-8bit-sm text-slate-400 shrink-0">sp</span>
             </div>
             <div className="flex items-center gap-1">
               <Input type="number" min={0} placeholder="0" value={cp}
-                onChange={e => setCp(e.target.value)} className="w-20 text-center" />
-              <span className="font-press-start text-8bit-sm text-orange-600 dark:text-orange-400">cp</span>
+                onChange={e => setCp(e.target.value)} className="w-full sm:w-20 text-center" />
+              <span className="font-press-start text-8bit-sm text-orange-600 dark:text-orange-400 shrink-0">cp</span>
             </div>
           </div>
         )}
 
-        <div className="flex gap-1 items-center mb-2">
+        <div className="flex gap-2 items-center mb-2">
           <select
-            className="font-press-start text-8bit-sm border-2 border-black dark:border-white bg-background px-1 py-1 h-9"
+            className="font-press-start text-8bit-sm border-2 border-black dark:border-white bg-background px-1 py-1 h-9 flex-1 sm:flex-none"
             value={field}
             onChange={e => setField(e.target.value as 'publicGold' | 'privateGold')}
           >
             <option value="publicGold">Public</option>
             <option value="privateGold">Private</option>
           </select>
-        </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="secondary" disabled={!hasValue || deltaCp === 0 || loading} onClick={() => handle(1)}>Give</Button>
-          <Button size="sm" variant="outline" disabled={!hasValue || deltaCp === 0 || loading} onClick={() => handle(-1)}>Take</Button>
+          <Button id={`dm-give-gold-btn-${member.id}`} size="sm" variant="secondary" disabled={!hasValue || deltaCp === 0 || loading} onClick={() => handle(1)}>Give</Button>
+          <Button id={`dm-take-gold-btn-${member.id}`} size="sm" variant="outline" disabled={!hasValue || deltaCp === 0 || loading} onClick={() => handle(-1)}>Take</Button>
         </div>
       </CardContent>
     </Card>

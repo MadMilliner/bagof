@@ -19,7 +19,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/8bit/alert-dialog'
 import type { CreateSessionResponse } from '@/types'
-import { saveSession, getSavedSessions, removeSession, type SavedSession } from '@/lib/savedSessions'
+import { BagOfLogo } from '@/components/BagOfLogo'
+import { saveSession, getSavedSessions, removeSession, type SavedSession, savePlayerLink, getSavedPlayerLinks, removePlayerLink, type SavedPlayerLink } from '@/lib/savedSessions'
 
 type Step = 'form' | 'links'
 
@@ -35,12 +36,15 @@ export function CreateSessionForm()
   const [error, setError] = useState('')
   const [copied, setCopied] = useState<string | null>(null)
   const [sessions, setSessions] = useState<SavedSession[]>([])
+  const [playerLinks, setPlayerLinks] = useState<SavedPlayerLink[]>([])
   const [mounted, setMounted] = useState(false)
   const [copiedSessionId, setCopiedSessionId] = useState<string | null>(null)
+  const [copiedPlayerId, setCopiedPlayerId] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
     setSessions(getSavedSessions())
+    setPlayerLinks(getSavedPlayerLinks())
   }, [])
 
   const updateMember = (i: number, val: string) =>
@@ -90,11 +94,23 @@ export function CreateSessionForm()
     setSessions(prev => prev.filter(s => s.sessionId !== sessionId))
   }
 
+  const handleRemovePlayerLink = (memberId: string) => {
+    removePlayerLink(memberId)
+    setPlayerLinks(prev => prev.filter(l => l.memberId !== memberId))
+  }
+
   const handleCopySessionLink = (dmToken: string, sessionId: string) => {
     const url = `${window.location.origin}/dm/${dmToken}`
     navigator.clipboard.writeText(url)
     setCopiedSessionId(sessionId)
     setTimeout(() => setCopiedSessionId(null), 2000)
+  }
+
+  const handleCopyPlayerLink = (memberToken: string, memberId: string) => {
+    const url = `${window.location.origin}/p/${memberToken}`
+    navigator.clipboard.writeText(url)
+    setCopiedPlayerId(memberId)
+    setTimeout(() => setCopiedPlayerId(null), 2000)
   }
 
   const copy = (text: string, key: string) =>
@@ -117,64 +133,131 @@ export function CreateSessionForm()
     copy(lines.join('\n'), 'all')
   }
 
-  // ── Saved sessions section (shown in both steps) ──────────
+  // ── Saved links section (shown in both steps) ──────────
 
-  const savedSessionsSection = mounted && sessions.length > 0 && (
-    <div className="space-y-3">
-      <p className="font-press-start text-8bit-sm text-muted-foreground">
-        Your saved sessions:
-      </p>
-      {sessions.map(session => (
-        <Card key={session.sessionId}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs flex items-center justify-between">
-              <span className="truncate mr-2">{session.sessionName}</span>
-              <Badge variant="destructive">{session.dmRole}</Badge>
-            </CardTitle>
-            <CardDescription className="text-[8px]">
-              Saved {new Date(session.savedAt).toLocaleDateString()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Link href={`/dm/${session.dmToken}`} className="block">
-              <Button size="sm" className="w-full">
-                Open {session.dmRole} Dashboard
-              </Button>
-            </Link>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1"
-                onClick={() => handleCopySessionLink(session.dmToken, session.sessionId)}
-              >
-                {copiedSessionId === session.sessionId ? '✓ Copied!' : 'Copy Link'}
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="destructive">
-                    ✕
+  const savedLinksSection = mounted && (sessions.length > 0 || playerLinks.length > 0) && (
+    <div id="saved-links-section" className="space-y-6">
+      {/* ── Campaigns (DM links) ── */}
+      {sessions.length > 0 && (
+        <div className="space-y-3">
+          <p id="your-campaigns-heading" className="font-press-start text-8bit-sm text-muted-foreground">
+            Your campaigns:
+          </p>
+          {sessions.map(session => (
+            <Card key={session.sessionId}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs flex items-center justify-between">
+                  <span className="truncate mr-2">{session.sessionName}</span>
+                  <Badge variant="destructive">{session.dmRole}</Badge>
+                </CardTitle>
+                <CardDescription className="text-[8px]">
+                  Saved {new Date(session.savedAt).toLocaleDateString()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Link href={`/dm/${session.dmToken}`} className="block">
+                  <Button id={`open-dm-dashboard-btn-${session.sessionId}`} size="sm" className="w-full">
+                    Open {session.dmRole} Dashboard
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remove &quot;{session.sessionName}&quot;?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This only removes the saved link from this device. The session itself still exists.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleRemoveSession(session.sessionId)}>
-                      Remove
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+                </Link>
+                <div className="flex gap-2">
+                  <Button
+                    id={`copy-dm-link-btn-${session.sessionId}`}
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => handleCopySessionLink(session.dmToken, session.sessionId)}
+                  >
+                    {copiedSessionId === session.sessionId ? '✓ Copied!' : 'Copy Link'}
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="destructive">
+                        ✕
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remove &quot;{session.sessionName}&quot;?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This only removes the saved link from this device. The campaign still exists.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleRemoveSession(session.sessionId)}>
+                          Remove
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* ── Characters (Player links) ── */}
+      {playerLinks.length > 0 && (
+        <div className="space-y-3">
+          <p id="your-characters-heading" className="font-press-start text-8bit-sm text-muted-foreground">
+            Your characters:
+          </p>
+          {playerLinks.map(link => (
+            <Card key={link.memberId}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs flex items-center justify-between">
+                  <span className="truncate mr-2">⚔️ {link.memberName}</span>
+                  <Badge variant="secondary">{link.sessionName}</Badge>
+                </CardTitle>
+                <CardDescription className="text-[8px]">
+                  {link.dmRole} campaign · Saved {new Date(link.savedAt).toLocaleDateString()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Link href={`/p/${link.memberToken}`} className="block">
+                  <Button id={`open-player-dashboard-btn-${link.memberId}`} size="sm" variant="secondary" className="w-full">
+                    Open Character Sheet
+                  </Button>
+                </Link>
+                <div className="flex gap-2">
+                  <Button
+                    id={`copy-player-link-btn-${link.memberId}`}
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => handleCopyPlayerLink(link.memberToken, link.memberId)}
+                  >
+                    {copiedPlayerId === link.memberId ? '✓ Copied!' : 'Copy Link'}
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="destructive">
+                        ✕
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remove &quot;{link.memberName}&quot;?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This only removes the saved link from this device. The character still exists.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleRemovePlayerLink(link.memberId)}>
+                          Remove
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 
@@ -182,7 +265,7 @@ export function CreateSessionForm()
 
   if (step === 'links' && result) {
     return (
-      <div className="w-full max-w-lg space-y-4">
+      <div id="session-links-step" className="w-full max-w-lg space-y-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <h1 className="font-press-start text-lg"><span className="text-2xl">🎒</span> Session Ready!</h1>
@@ -195,6 +278,7 @@ export function CreateSessionForm()
 
         {/* Copy all button */}
         <Button
+          id="copy-all-links-btn"
           variant="secondary"
           className="w-full"
           onClick={() => copyAll(result)}
@@ -239,7 +323,7 @@ export function CreateSessionForm()
           </CardContent>
         </Card>
 
-        {savedSessionsSection}
+        {savedLinksSection}
       </div>
     )
   }
@@ -247,10 +331,10 @@ export function CreateSessionForm()
   // ── Form step ─────────────────────────────────────────────
 
   return (
-    <div className="w-full max-w-md space-y-6">
+    <div id="create-session-form" className="w-full max-w-md space-y-6">
       <div className="flex items-start justify-between">
         <div className="text-center flex-1">
-          <h1 className="font-press-start text-xl mb-2">Bag of</h1>
+          <BagOfLogo variant="large" />
           <p className="font-press-start text-[10px] text-muted-foreground leading-relaxed">
             Party loot manager. No accounts.
           </p>
@@ -267,6 +351,7 @@ export function CreateSessionForm()
           <div className="space-y-2">
             <label className="font-press-start text-[10px]">Campaign Name</label>
             <Input
+              id="campaign-name-input"
               placeholder="The Dragon's Hoard Campaign..."
               value={sessionName}
               onChange={e => setSessionName(e.target.value)}
@@ -276,6 +361,7 @@ export function CreateSessionForm()
           <div className="space-y-2">
             <label className="font-press-start text-[10px]">Currency System</label>
             <select
+              id="currency-system-select"
               className="font-press-start text-[10px] w-full border-2 border-black dark:border-white bg-background px-2 py-2"
               value={currencyType}
               onChange={e => setCurrencyType(e.target.value as 'dnd' | 'wealth')}
@@ -287,6 +373,7 @@ export function CreateSessionForm()
           <div className="space-y-2">
             <label className="font-press-start text-[10px]">What do you prefer to be called?</label>
             <select
+              id="dm-role-select"
               className="font-press-start text-[10px] w-full border-2 border-black dark:border-white bg-background px-2 py-2"
               value={dmRole}
               onChange={e => setDmRole(e.target.value)}
@@ -305,19 +392,20 @@ export function CreateSessionForm()
               {memberNames.map((name, i) => (
                 <div key={i} className="flex gap-2">
                   <Input
+                    id={`member-name-input-${i}`}
                     placeholder={`Player ${i + 1}...`}
                     value={name}
                     onChange={e => updateMember(i, e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleCreate()}
                     className="flex-1"
                   />
-                  <Button size="icon" variant="destructive" onClick={() => removeMember(i)}>
+                  <Button id={`remove-member-btn-${i}`} size="icon" variant="destructive" onClick={() => removeMember(i)}>
                     ✕
                   </Button>
                 </div>
               ))}
             </div>
-            <Button variant="outline" size="sm" onClick={addMember} className="w-full">
+            <Button id="add-member-btn" variant="outline" size="sm" onClick={addMember} className="w-full">
               + Add Member
             </Button>
           </div>
@@ -326,13 +414,13 @@ export function CreateSessionForm()
             <p className="font-press-start text-[10px] text-destructive">{error}</p>
           )}
 
-          <Button className="w-full" onClick={handleCreate} disabled={loading}>
+          <Button id="create-session-btn" className="w-full" onClick={handleCreate} disabled={loading}>
             {loading ? 'Creating...' : 'Create Session'}
           </Button>
         </CardContent>
       </Card>
 
-      {savedSessionsSection}
+      {savedLinksSection}
     </div>
   )
 }

@@ -52,11 +52,11 @@ export function DiceRollerPopup({ notation, onClose }: DiceRollerProps) {
   if (!result) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div id="dice-roller-popup" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <Card className="w-full max-w-sm shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
         <CardHeader className="flex flex-row items-center justify-between pb-2 border-b-2 border-black dark:border-white">
           <CardTitle className="text-sm"><FaDiceD20/> Rolling {notation}</CardTitle>
-          <Button variant="outline" size="sm" onClick={onClose} className="h-6 px-2 text-[10px]">✕</Button>
+          <Button id="dice-roller-close-btn" variant="outline" size="sm" onClick={onClose} className="h-6 px-2 text-[10px]">✕</Button>
         </CardHeader>
         <CardContent className="space-y-4 pt-4 text-center">
           <div className="font-press-start text-4xl text-yellow-600 dark:text-yellow-400 py-4">
@@ -68,7 +68,7 @@ export function DiceRollerPopup({ notation, onClose }: DiceRollerProps) {
           </div>
 
           <div className="pt-2">
-            <Button variant="secondary" className="w-full" onClick={handleReroll}>
+            <Button id="dice-roller-reroll-btn" variant="secondary" className="w-full" onClick={handleReroll}>
               Reroll <FaDiceD20/>
             </Button>
           </div>

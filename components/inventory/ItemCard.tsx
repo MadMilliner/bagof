@@ -127,7 +127,7 @@ export function ItemCard({
   return (
     <>
       {diceNotation && <DiceRollerPopup notation={diceNotation} onClose={() => setDiceNotation(null)} />}
-      <Card className="w-full">
+      <Card id={`item-card-${item.id}`} className="w-full">
         <CardContent className="p-3">
           <div className="flex items-start gap-3">
             <span className="text-xl mt-0.5">{TYPE_ICONS[item.type]}</span>
@@ -176,15 +176,15 @@ export function ItemCard({
                     Tip: Use '1d20+5' to make rolls clickable. <FaDiceD20 className="inline-block text-lg" />
                   </p>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={handleSave} disabled={saving}>Save</Button>
-                    <Button size="sm" variant="outline" onClick={handleCancel} disabled={saving}>Cancel</Button>
+                    <Button id={`item-save-edit-btn-${item.id}`} size="sm" onClick={handleSave} disabled={saving}>Save</Button>
+                    <Button id={`item-cancel-edit-btn-${item.id}`} size="sm" variant="outline" onClick={handleCancel} disabled={saving}>Cancel</Button>
                   </div>
                 </div>
               )}
 
               <div className="flex flex-wrap gap-2">
                 {isInPool && onClaim && (
-                  <Button size="sm" onClick={() => onClaim(item)}>
+                  <Button id={`item-claim-btn-${item.id}`} size="sm" onClick={() => onClaim(item)}>
                     Claim
                   </Button>
                 )}
@@ -192,24 +192,24 @@ export function ItemCard({
                 {viewerIsOwner && (
                   <>
                     {onOffer && !isInPool && (
-                      <Button size="sm" variant="secondary" onClick={() => onOffer(item)}>
+                      <Button id={`item-offer-btn-${item.id}`} size="sm" variant="secondary" onClick={() => onOffer(item)}>
                         Offer to Party
                       </Button>
                     )}
                     {onTogglePrivate && (
-                      <Button size="sm" variant="outline" onClick={() => onTogglePrivate(item)}>
+                      <Button id={`item-toggle-private-btn-${item.id}`} size="sm" variant="outline" onClick={() => onTogglePrivate(item)}>
                         {item.private ? 'Make Public' : 'Make Private'}
                       </Button>
                     )}
                     {onUpdate && !isEditing && (
-                      <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                      <Button id={`item-edit-notes-btn-${item.id}`} size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                         Edit Notes
                       </Button>
                     )}
                     {onDelete && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="destructive">
+                          <Button id={`item-drop-btn-${item.id}`} size="sm" variant="destructive">
                             Drop
                           </Button>
                         </AlertDialogTrigger>
@@ -235,14 +235,14 @@ export function ItemCard({
                 {viewerIsDM && !viewerIsOwner && (
                   <>
                     {onUpdate && !isEditing && (
-                      <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                      <Button id={`item-dm-edit-notes-btn-${item.id}`} size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                         Edit Notes
                       </Button>
                     )}
                     {onDelete && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="destructive">
+                          <Button id={`item-dm-remove-btn-${item.id}`} size="sm" variant="destructive">
                             Remove
                           </Button>
                         </AlertDialogTrigger>

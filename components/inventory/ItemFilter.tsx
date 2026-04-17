@@ -23,9 +23,10 @@ export function ItemFilter({
   totalCount,
 }: ItemFilterProps) {
   return (
-    <div className="space-y-2 mb-3">
+    <div id="item-filter" className="space-y-2 mb-3">
       <div className="flex gap-2 items-center flex-wrap">
         <Input
+          id="item-search-input"
           type="text"
           placeholder="Search items..."
           value={search}

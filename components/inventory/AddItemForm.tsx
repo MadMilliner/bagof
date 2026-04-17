@@ -52,9 +52,10 @@ export function AddItemForm({
   }
 
   return (
-    <div className="space-y-3 mb-4">
+    <div id="add-item-form" className="space-y-3 mb-4">
       <div className="flex gap-2">
         <Input
+          id="item-name-input"
           placeholder={placeholder}
           value={name}
           onChange={e => setName(e.target.value)}
@@ -62,7 +63,7 @@ export function AddItemForm({
           onKeyDown={e => e.key === 'Enter' && handleAdd()}
           className="flex-1"
         />
-        <Button onClick={handleAdd} disabled={!name.trim() || isLoading}>
+        <Button id="add-item-btn" onClick={handleAdd} disabled={!name.trim() || isLoading}>
           {isLoading ? '...' : 'Add'}
         </Button>
       </div>
@@ -118,7 +119,7 @@ export function AddItemForm({
             )}
           </div>
 
-          <Button variant="ghost" size="sm" onClick={() => setExpanded(false)}>
+          <Button id="collapse-item-form-btn" variant="ghost" size="sm" onClick={() => setExpanded(false)}>
             Collapse
           </Button>
         </div>

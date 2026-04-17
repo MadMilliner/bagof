@@ -40,6 +40,16 @@ export interface CreateSessionPayload {
   memberNames: string[]
 }
 
+export interface ActivityEntry {
+  id: string
+  sessionId: string
+  memberId: string | null
+  actorName: string
+  action: string
+  details: string
+  createdAt: string
+}
+
 export interface CreateSessionResponse {
   session: Session
   dmUrl: string

@@ -151,14 +151,14 @@ export function ItemCard({
 
               {!isEditing ? (
                 item.description && (
-                  <div className="font-press-start text-[10px] text-muted-foreground leading-relaxed mb-2 break-words">
+                  <div className="font-press-start text-8bit-sm text-muted-foreground leading-relaxed mb-2 break-words">
                     {formatDescription(item.description, setDiceNotation)}
                   </div>
                 )
               ) : (
                 <div className="mb-2 space-y-2 pt-2">
                   <select
-                    className="font-press-start text-[10px] w-full border-2 border-black dark:border-white bg-background px-2 py-2"
+                    className="font-press-start text-8bit-sm w-full border-2 border-black dark:border-white bg-background px-2 py-2"
                     value={draftType}
                     onChange={e => setDraftType(e.target.value as Item['type'])}
                   >
@@ -171,9 +171,9 @@ export function ItemCard({
                     placeholder="Description (e.g., '1d8+2 damage')"
                     value={draftDesc}
                     onChange={e => setDraftDesc(e.target.value)}
-                    className="min-h-[80px] text-[10px] font-press-start"
+                    className="min-h-[80px] text-8bit-sm font-press-start"
                   />
-                  <p className="font-press-start text-[8px] text-muted-foreground mt-1">
+                  <p className="font-press-start text-8bit-xs text-muted-foreground mt-1">
                     Tip: Use '1d20+5' to make rolls clickable. <FaDiceD20 className="inline-block text-lg" />
                   </p>
                   <div className="flex gap-2">

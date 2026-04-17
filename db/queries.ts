@@ -1,6 +1,6 @@
-import { sql, migrate } from './index'
+import { sql, connect, migrate } from './index'
 import { randomUUID } from 'crypto'
-import type { Item, Member, Session } from '@/types'
+import type { Item, Member, Session, ActivityEntry } from '@/types'
 
 // Run migrations on first import (creates tables if they don't exist)
 await migrate()
@@ -44,6 +44,22 @@ function mapItem(row: Record<string, any>): Item {
     quantity: row.quantity,
     createdAt: row.created_at,
   }
+}
+
+// ── Single-record lookups (for activity logging) ──────────────
+
+export async function getItemById(itemId: string): Promise<Item | null> {
+  const { rows } = await sql`
+    SELECT * FROM items WHERE id = ${itemId} LIMIT 1
+  `
+  return rows[0] ? mapItem(rows[0]) : null
+}
+
+export async function getMemberById(memberId: string): Promise<Member | null> {
+  const { rows } = await sql`
+    SELECT * FROM members WHERE id = ${memberId} LIMIT 1
+  `
+  return rows[0] ? mapMember(rows[0]) : null
 }
 
 // ── Token resolution ──────────────────────────────────────────
@@ -153,11 +169,11 @@ export async function addItem(data: {
   return mapItem(rows[0])
 }
 
-export async function claimItem(itemId: string, memberId: string): Promise<boolean> {
+export async function claimItem(itemId: string, memberId: string, sessionId: string): Promise<boolean> {
   const { rowCount } = await sql`
     UPDATE items
     SET owner_id = ${memberId}, offered_to_party = FALSE
-    WHERE id = ${itemId} AND owner_id IS NULL
+    WHERE id = ${itemId} AND owner_id IS NULL AND session_id = ${sessionId}
   `
   return (rowCount ?? 0) > 0
 }
@@ -171,34 +187,65 @@ export async function offerItem(itemId: string, memberId: string): Promise<boole
   return (rowCount ?? 0) > 0
 }
 
+export const MAX_ITEM_QUANTITY = 100
+
 export async function offerItemSplit(itemId: string, memberId: string): Promise<Item[] | null> {
-  const { rows } = await sql`
-    SELECT * FROM items WHERE id = ${itemId} AND owner_id = ${memberId}
-  `
-  if (!rows[0]) return null
+  const client = await connect()
+  try {
+    await client.sql`BEGIN`
 
-  const existing = rows[0]
-  const qty = existing.quantity as number
-  const newItems: Item[] = []
-
-  if (qty > 1) {
-    await sql`DELETE FROM items WHERE id = ${itemId}`
-    for (let i = 0; i < qty; i++) {
-      const newId = randomUUID()
-      const { rows: inserted } = await sql`
-        INSERT INTO items (id, session_id, owner_id, name, description, type, private, offered_to_party, quantity)
-        VALUES (${newId}, ${existing.session_id}, NULL, ${existing.name}, ${existing.description}, ${existing.type}, FALSE, TRUE, 1)
-        RETURNING *
-      `
-      newItems.push(mapItem(inserted[0]))
+    const { rows } = await client.sql`
+      SELECT * FROM items WHERE id = ${itemId} AND owner_id = ${memberId}
+    `
+    if (!rows[0]) {
+      await client.sql`ROLLBACK`
+      return null
     }
-  } else {
-    await offerItem(itemId, memberId)
-    const { rows: updated } = await sql`SELECT * FROM items WHERE id = ${itemId}`
-    newItems.push(mapItem(updated[0]))
-  }
 
-  return newItems
+    const existing = rows[0]
+    const qty = Math.min(existing.quantity as number, MAX_ITEM_QUANTITY)
+    const newItems: Item[] = []
+
+    if (qty > 1) {
+      // Update the original item: move to party pool
+      await client.sql`
+        UPDATE items
+        SET owner_id = NULL, offered_to_party = TRUE, private = FALSE, quantity = 1
+        WHERE id = ${itemId}
+      `
+      const { rows: updated } = await client.sql`SELECT * FROM items WHERE id = ${itemId}`
+      newItems.push(mapItem(updated[0]))
+
+      // Insert remaining copies
+      for (let i = 1; i < qty; i++) {
+        const newId = randomUUID()
+        const { rows: inserted } = await client.sql`
+          INSERT INTO items (id, session_id, owner_id, name, description, type, private, offered_to_party, quantity)
+          VALUES (${newId}, ${existing.session_id}, NULL, ${existing.name}, ${existing.description}, ${existing.type}, FALSE, TRUE, 1)
+          RETURNING *
+        `
+        newItems.push(mapItem(inserted[0]))
+      }
+    } else {
+      // Single item: just move to pool (using client.sql directly, not offerItem(),
+      // because offerItem() uses the global sql pool and would escape this transaction)
+      await client.sql`
+        UPDATE items
+        SET owner_id = NULL, offered_to_party = TRUE, private = FALSE
+        WHERE id = ${itemId} AND owner_id = ${memberId}
+      `
+      const { rows: updated } = await client.sql`SELECT * FROM items WHERE id = ${itemId}`
+      newItems.push(mapItem(updated[0]))
+    }
+
+    await client.sql`COMMIT`
+    return newItems
+  } catch (err) {
+    await client.sql`ROLLBACK`.catch(() => {})
+    throw err
+  } finally {
+    client.release()
+  }
 }
 
 export async function updateItem(
@@ -257,28 +304,49 @@ export async function deleteItem(
 // All gold values stored as copper pieces (cp). 1 gp = 100 cp, 1 sp = 10 cp.
 
 export async function splitGold(sessionId: string, amountCp: number): Promise<void> {
-  const members = await getSessionMembers(sessionId)
-  if (members.length === 0) return
-  const share = Math.floor(amountCp / members.length)
-  for (const m of members) {
-    await sql`
-      UPDATE members SET public_gold = public_gold + ${share} WHERE id = ${m.id}
+  const client = await connect()
+  try {
+    await client.sql`BEGIN`
+
+    const { rows } = await client.sql`
+      SELECT id FROM members WHERE session_id = ${sessionId} ORDER BY created_at ASC
     `
+    if (rows.length === 0) {
+      await client.sql`ROLLBACK`
+      return
+    }
+
+    const share = Math.floor(amountCp / rows.length)
+    // Batch update in a single query (tagged template for type safety)
+    await client.sql`
+      UPDATE members SET public_gold = public_gold + ${share} WHERE session_id = ${sessionId}
+    `
+
+    await client.sql`COMMIT`
+  } catch (err) {
+    await client.sql`ROLLBACK`.catch(() => {})
+    throw err
+  } finally {
+    client.release()
   }
 }
 
 // Adjust (increment/decrement) a member's gold by deltaCp copper pieces.
 // Pass a negative deltaCp to subtract. Will not go below 0.
+// If sessionId is provided, the update is scoped to that session (prevents cross-session IDOR).
+// Returns true if the row was updated, false if not found (wrong session).
 export async function adjustMemberGold(
   memberId: string,
   field: 'publicGold' | 'privateGold',
-  deltaCp: number
-): Promise<void> {
+  deltaCp: number,
+  sessionId: string
+): Promise<boolean> {
   const col = field === 'publicGold' ? 'public_gold' : 'private_gold'
-  await sql.query(
-    `UPDATE members SET ${col} = GREATEST(0, ${col} + $1) WHERE id = $2`,
-    [deltaCp, memberId]
+  const { rowCount } = await sql.query(
+    `UPDATE members SET ${col} = GREATEST(0, ${col} + $1) WHERE id = $2 AND session_id = $3`,
+    [deltaCp, memberId, sessionId]
   )
+  return (rowCount ?? 0) > 0
 }
 
 export async function adjustPartyGold(sessionId: string, deltaCp: number): Promise<void> {
@@ -286,6 +354,36 @@ export async function adjustPartyGold(sessionId: string, deltaCp: number): Promi
     `UPDATE sessions SET party_gold = GREATEST(0, party_gold + $1) WHERE id = $2`,
     [deltaCp, sessionId]
   )
+}
+
+// Transfer gold from a member's public gold to the party pool atomically.
+// Only succeeds if the member has enough gold. Returns true on success.
+export async function transferToPartyPool(memberId: string, sessionId: string, amountCp: number): Promise<boolean> {
+  const { rowCount } = await sql`
+    WITH deduct AS (
+      UPDATE members SET public_gold = public_gold - ${amountCp}
+      WHERE id = ${memberId} AND session_id = ${sessionId} AND public_gold >= ${amountCp}
+      RETURNING id
+    )
+    UPDATE sessions SET party_gold = party_gold + ${amountCp}
+    WHERE id = ${sessionId} AND EXISTS (SELECT 1 FROM deduct)
+  `
+  return (rowCount ?? 0) > 0
+}
+
+// Transfer gold from the party pool to a member's public gold atomically.
+// Only succeeds if the party pool has enough gold. Returns true on success.
+export async function transferFromPartyPool(memberId: string, sessionId: string, amountCp: number): Promise<boolean> {
+  const { rowCount } = await sql`
+    WITH deduct AS (
+      UPDATE sessions SET party_gold = party_gold - ${amountCp}
+      WHERE id = ${sessionId} AND party_gold >= ${amountCp}
+      RETURNING id
+    )
+    UPDATE members SET public_gold = public_gold + ${amountCp}
+    WHERE id = ${memberId} AND session_id = ${sessionId} AND EXISTS (SELECT 1 FROM deduct)
+  `
+  return (rowCount ?? 0) > 0
 }
 
 // ── Member updates ────────────────────────────────────────────
@@ -306,6 +404,47 @@ export async function updateMemberName(memberId: string, name: string): Promise<
     UPDATE members SET name = ${name} WHERE id = ${memberId}
   `
   return (rowCount ?? 0) > 0
+}
+
+// ── Activity log ────────────────────────────────────────────
+
+function mapActivity(row: Record<string, any>): ActivityEntry {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    memberId: row.member_id,
+    actorName: row.actor_name,
+    action: row.action,
+    details: row.details,
+    createdAt: row.created_at,
+  }
+}
+
+export async function logActivity(
+  sessionId: string,
+  memberId: string | null,
+  actorName: string,
+  action: string,
+  details: string = ''
+): Promise<void> {
+  const id = randomUUID()
+  await sql`
+    INSERT INTO activity_log (id, session_id, member_id, actor_name, action, details)
+    VALUES (${id}, ${sessionId}, ${memberId}, ${actorName}, ${action}, ${details})
+  `
+}
+
+export async function getSessionActivity(
+  sessionId: string,
+  limit: number = 50
+): Promise<ActivityEntry[]> {
+  const { rows } = await sql`
+    SELECT * FROM activity_log
+    WHERE session_id = ${sessionId}
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `
+  return rows.map(mapActivity)
 }
 
 // ── Other members' public items ───────────────────────────────

@@ -75,13 +75,13 @@ export function AddItemForm({
             onChange={e => setDescription(e.target.value)}
             rows={2}
           />
-          <p className="font-press-start text-[8px] text-muted-foreground mt-1">
+          <p className="font-press-start text-8bit-xs text-muted-foreground mt-1">
             Tip: Use '1d20+5' to make rolls clickable. <FaDiceD20 className="inline-block text-lg" />
           </p>
 
           <div className="flex flex-wrap gap-3 items-center">
             <div className="flex items-center gap-2">
-              <span className="font-press-start text-[10px]">Type</span>
+              <span className="font-press-start text-8bit-sm">Type</span>
               <Select value={type} onValueChange={v => setType(v as ItemType)}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
@@ -95,7 +95,7 @@ export function AddItemForm({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="font-press-start text-[10px]">Qty</span>
+              <span className="font-press-start text-8bit-sm">Qty</span>
               <Input
                 type="number"
                 min={1}
@@ -106,7 +106,7 @@ export function AddItemForm({
             </div>
 
             {showPrivateToggle && (
-              <label className="flex items-center gap-2 cursor-pointer font-press-start text-[10px]">
+              <label className="flex items-center gap-2 cursor-pointer font-press-start text-8bit-sm">
                 <input
                   type="checkbox"
                   checked={isPrivate}

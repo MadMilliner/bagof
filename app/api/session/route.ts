@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSession } from '@/db/queries'
+import { createSession, logActivity } from '@/db/queries'
+import { checkRateLimit } from '@/lib/rateLimit'
 import type { CreateSessionResponse } from '@/types'
 
 export async function POST(req: NextRequest) {
+  const rateLimited = checkRateLimit(req, 10, 60_000) // 10 session creates per minute
+  if (rateLimited) return rateLimited
+
   try {
     const { sessionName, memberNames, currencyType, dmRole } = await req.json()
 
@@ -15,6 +19,7 @@ export async function POST(req: NextRequest) {
 
 
     const { session, members } = await createSession(sessionName.trim(), currencyType || 'dnd', dmRole || 'Dungeon Master', cleaned)
+    await logActivity(session.id, null, dmRole || 'Dungeon Master', 'session_create', `${sessionName.trim()} with ${cleaned.length} members`)
     const base = req.headers.get('origin') ?? req.nextUrl.origin
 
     const response: CreateSessionResponse = {

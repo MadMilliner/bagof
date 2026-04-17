@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/8bit/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { Badge } from '@/components/ui/8bit/badge'
@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/8bit/button'
 import { Input } from '@/components/ui/8bit/input'
 import { ItemCard } from '@/components/inventory/ItemCard'
 import { AddItemForm } from '@/components/inventory/AddItemForm'
+import { ItemFilter, filterItems } from '@/components/inventory/ItemFilter'
 import { GoldPanel } from '@/components/gold/GoldPanel'
+import { ActivityLog } from '@/components/ActivityLog'
 import { ThemeToggle } from '@/components/ThemeProvider'
 import
 {
@@ -45,6 +47,9 @@ export function DMDashboard({
   const [origin, setOrigin] = useState('')
   const [newMemberName, setNewMemberName] = useState('')
   const [mounted, setMounted] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [poolSearch, setPoolSearch] = useState('')
+  const [poolTypeFilter, setPoolTypeFilter] = useState<ItemType | 'All'>('All')
 
   useEffect(() =>
   {
@@ -52,9 +57,36 @@ export function DMDashboard({
     setMounted(true)
   }, [])
 
+  // ── Polling: auto-refresh every 30s ──
+  // Skip polls while an action is in-flight to avoid overwriting optimistic updates
+  useEffect(() => {
+    if (!mounted) return
+    const interval = setInterval(() => {
+      if (!loading && document.visibilityState === 'visible') refreshData()
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [mounted, loading])
+
+  const refreshData = useCallback(async () => {
+    setRefreshing(true)
+    try {
+      const res = await fetch(`/api/refresh?token=${dmToken}&role=dm`)
+      if (!res.ok) return
+      const data = await res.json()
+      setAllItems(data.items)
+      setMembers(data.members)
+      setPartyGold(data.session.partyGold)
+    } catch {
+      // Silently fail — polling is best-effort
+    } finally {
+      setRefreshing(false)
+    }
+  }, [dmToken])
+
   if (!mounted) return null
 
   const partyPool = allItems.filter(i => !i.ownerId)
+  const filteredPool = filterItems(partyPool, poolSearch, poolTypeFilter)
   const memberItems = (id: string) => allItems.filter(i => i.ownerId === id)
   const totalGold = members.reduce((s, m) => s + m.publicGold, 0)
 
@@ -82,60 +114,87 @@ export function DMDashboard({
 
   const deleteItem = async (item: Item) =>
   {
+    // Optimistic update
+    setAllItems(prev => prev.filter(i => i.id !== item.id))
+
     const res = await fetch('/api/items', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dmToken, itemId: item.id }),
     })
-    if (!res.ok) return
-    setAllItems(prev => prev.filter(i => i.id !== item.id))
+    if (!res.ok) {
+      // Roll back
+      setAllItems(prev => [...prev, item])
+    }
   }
 
   const splitGold = async (amountCp: number) =>
   {
+    // Optimistic update
+    const share = Math.floor(amountCp / members.length)
+    setMembers(prev => prev.map(m => ({ ...m, publicGold: m.publicGold + share })))
+
     const res = await fetch('/api/gold', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dmToken, action: 'split', amountCp }),
     })
-    if (!res.ok) return
-    const share = Math.floor(amountCp / members.length)
-    setMembers(prev => prev.map(m => ({ ...m, publicGold: m.publicGold + share })))
+    if (!res.ok) {
+      // Roll back
+      setMembers(prev => prev.map(m => ({ ...m, publicGold: m.publicGold - share })))
+    }
   }
 
   const giveGold = async (memberId: string, deltaCp: number, field: 'publicGold' | 'privateGold') =>
   {
+    // Optimistic update
+    setMembers(prev => prev.map(m =>
+      m.id === memberId ? { ...m, [field]: Math.max(0, m[field] + deltaCp) } : m
+    ))
+
     const res = await fetch('/api/gold', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dmToken, action: 'give', memberId, deltaCp, field }),
     })
-    if (!res.ok) return
-    setMembers(prev => prev.map(m =>
-      m.id === memberId ? { ...m, [field]: Math.max(0, m[field] + deltaCp) } : m
-    ))
+    if (!res.ok) {
+      // Roll back
+      setMembers(prev => prev.map(m =>
+        m.id === memberId ? { ...m, [field]: Math.max(0, m[field] - deltaCp) } : m
+      ))
+    }
   }
 
   const updateItemAction = async (item: Item, updates: Partial<Item>) =>
   {
+    // Optimistic update
+    setAllItems(prev => prev.map(i => i.id === item.id ? { ...i, ...updates } : i))
+
     const res = await fetch('/api/items', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dmToken, itemId: item.id, action: 'update', updates }),
     })
-    if (!res.ok) return
-    setAllItems(prev => prev.map(i => i.id === item.id ? { ...i, ...updates } : i))
+    if (!res.ok) {
+      // Roll back
+      setAllItems(prev => prev.map(i => i.id === item.id ? item : i))
+    }
   }
 
   const adjustPartyGold = async (deltaCp: number) =>
   {
+    // Optimistic update
+    setPartyGold(prev => Math.max(0, prev + deltaCp))
+
     const res = await fetch('/api/gold', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dmToken, action: 'party_adjust', deltaCp }),
     })
-    if (!res.ok) return
-    setPartyGold(prev => Math.max(0, prev + deltaCp))
+    if (!res.ok) {
+      // Roll back
+      setPartyGold(prev => Math.max(0, prev - deltaCp))
+    }
   }
 
   const handleAddMember = async () =>
@@ -166,12 +225,15 @@ export function DMDashboard({
           <div className="flex items-center gap-3">
             <span className="font-press-start text-2xl"></span>
             <div>
-              <p className="font-press-start text-[10px] text-muted-foreground">Bag of</p>
-              <h1 className="font-press-start text-lg leading-tight mt-1">{session.dmRole}</h1>
-              <p className="font-press-start text-[10px] text-muted-foreground mt-1">{session.name}</p>
+              <p className="font-press-start text-8bit-sm text-muted-foreground">Bag of</p>
+              <h1 className="font-press-start text-8bit-lg leading-tight mt-1">{session.dmRole}</h1>
+              <p className="font-press-start text-8bit-sm text-muted-foreground mt-1">{session.name}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button className='refresh-data' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
+              {refreshing ? '⟳' : '↻'}
+            </Button>
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" title="Share player links">
@@ -188,14 +250,14 @@ export function DMDashboard({
                 </SheetHeader>
 
                 <div className="mt-6 border-b-2 border-black dark:border-white pb-6">
-                  <p className="font-press-start text-[10px] font-bold mb-3">Add New Member</p>
+                  <p className="font-press-start text-8bit-sm font-bold mb-3">Add New Member</p>
                   <div className="flex gap-2">
                     <Input
                       placeholder="Player Name"
                       value={newMemberName}
                       onChange={e => setNewMemberName(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleAddMember()}
-                      className="text-[10px] h-9"
+                      className="text-8bit-sm h-9"
                     />
                     <Button
                       size="sm"
@@ -209,18 +271,17 @@ export function DMDashboard({
 
                 <div className="mt-6 space-y-6 overflow-y-auto max-h-[60vh] pr-2">
                   {members.map(m => (
-                    <div key={m.id} className="space-y-2">
-                      <p className="font-press-start text-[10px] font-bold text-foreground">⚔️ {m.name}</p>
+                    <div key={m.id} className="space-y-2">                        <p className="font-press-start text-8bit-sm font-bold text-foreground">⚔️ {m.name}</p>
                       <div className="flex gap-2">
                         <Input
                           readOnly
                           value={origin ? `${origin}/p/${m.token}` : `/p/${m.token}`}
-                          className="text-[10px] h-8"
+                          className="text-8bit-sm h-8"
                         />
                         <Button
                           size="sm"
                           variant="secondary"
-                          className="h-8 text-[10px]"
+                          className="h-8 text-8bit-sm"
                           onClick={() =>
                           {
                             const url = origin ? `${origin}/p/${m.token}` : `${window.location.origin}/p/${m.token}`
@@ -250,6 +311,7 @@ export function DMDashboard({
           <TabsTrigger className='grow' value="gold">
             {session.currencyType === 'wealth' ? 'Wealth' : 'Gold'}
           </TabsTrigger>
+          <TabsTrigger className='grow' value="activity">Activity</TabsTrigger>
         </TabsList>
 
         {/* ── Party Pool ── */}
@@ -267,13 +329,21 @@ export function DMDashboard({
             showPrivateToggle={false}
             placeholder="Add loot to party pool..."
           />
+          <ItemFilter
+            search={poolSearch}
+            onSearchChange={setPoolSearch}
+            typeFilter={poolTypeFilter}
+            onTypeFilterChange={setPoolTypeFilter}
+            resultCount={filteredPool.length}
+            totalCount={partyPool.length}
+          />
           <div className="space-y-2">
             {partyPool.length === 0 ? (
-              <p className="font-press-start text-[10px] text-muted-foreground text-center py-8">
+              <p className="font-press-start text-8bit-sm text-muted-foreground text-center py-8">
                 Party Bag is empty. Drop some loot!
               </p>
             ) : (
-              partyPool.map(item => (
+              filteredPool.map(item => (
                 <ItemCard key={item.id} item={item} viewerIsDM onDelete={deleteItem} onUpdate={updateItemAction} dmRole={session.dmRole} />
               ))
             )}
@@ -296,7 +366,7 @@ export function DMDashboard({
                 <CardContent>
                   <div className="space-y-2">
                     {memberItems(m.id).length === 0 ? (
-                      <p className="font-press-start text-[10px] text-muted-foreground">
+                      <p className="font-press-start text-8bit-sm text-muted-foreground">
                         No items.
                       </p>
                     ) : (
@@ -335,6 +405,11 @@ export function DMDashboard({
               <GiveMemberGold key={m.id} member={m} onGive={giveGold} currencyType={session.currencyType} />
             ))}
           </div>
+        </TabsContent>
+
+        {/* ── Activity Log ── */}
+        <TabsContent value="activity">
+          <ActivityLog token={dmToken} role="dm" />
         </TabsContent>
       </Tabs>
     </div>
@@ -387,39 +462,39 @@ function GiveMemberGold({
     <Card>
       <CardContent className="pt-3 pb-3 space-y-2">
         <div className="flex items-center justify-between">
-          <span className="font-press-start text-[10px] font-bold">{member.name}</span>
-          <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400">{publicDisplay}</span>
+          <span className="font-press-start text-8bit-sm font-bold">{member.name}</span>
+          <span className="font-press-start text-8bit-sm text-yellow-600 dark:text-yellow-400">{publicDisplay}</span>
         </div>
 
         {currencyType === 'wealth' ? (
           <div className="flex gap-1 items-center">
             <Input type="number" min={0} placeholder="0" value={cp}
               onChange={e => setCp(e.target.value)} className="w-20 text-center" />
-            <span className="font-press-start text-[10px] text-muted-foreground mt-1">Wealth</span>
+            <span className="font-press-start text-8bit-sm text-muted-foreground mt-1">Wealth</span>
           </div>
         ) : (
           <div className="flex gap-1 items-center flex-wrap">
             <div className="flex items-center gap-1">
               <Input type="number" min={0} placeholder="0" value={gp}
                 onChange={e => setGp(e.target.value)} className="w-20 text-center" />
-              <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400">gp</span>
+              <span className="font-press-start text-8bit-sm text-yellow-600 dark:text-yellow-400">gp</span>
             </div>
             <div className="flex items-center gap-1">
               <Input type="number" min={0} placeholder="0" value={sp}
                 onChange={e => setSp(e.target.value)} className="w-20 text-center" />
-              <span className="font-press-start text-[10px] text-slate-400">sp</span>
+              <span className="font-press-start text-8bit-sm text-slate-400">sp</span>
             </div>
             <div className="flex items-center gap-1">
               <Input type="number" min={0} placeholder="0" value={cp}
                 onChange={e => setCp(e.target.value)} className="w-20 text-center" />
-              <span className="font-press-start text-[10px] text-orange-600 dark:text-orange-400">cp</span>
+              <span className="font-press-start text-8bit-sm text-orange-600 dark:text-orange-400">cp</span>
             </div>
           </div>
         )}
 
         <div className="flex gap-1 items-center mb-2">
           <select
-            className="font-press-start text-[10px] border-2 border-black dark:border-white bg-background px-1 py-1 h-9"
+            className="font-press-start text-8bit-sm border-2 border-black dark:border-white bg-background px-1 py-1 h-9"
             value={field}
             onChange={e => setField(e.target.value as 'publicGold' | 'privateGold')}
           >

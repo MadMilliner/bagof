@@ -1,12 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/8bit/card'
 import { Button } from '@/components/ui/8bit/button'
 import { Input } from '@/components/ui/8bit/input'
 import { Badge } from '@/components/ui/8bit/badge'
 import { ThemeToggle } from '@/components/ThemeProvider'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/8bit/alert-dialog'
 import type { CreateSessionResponse } from '@/types'
+import { saveSession, getSavedSessions, removeSession, type SavedSession } from '@/lib/savedSessions'
 
 type Step = 'form' | 'links'
 
@@ -21,6 +34,14 @@ export function CreateSessionForm()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState<string | null>(null)
+  const [sessions, setSessions] = useState<SavedSession[]>([])
+  const [mounted, setMounted] = useState(false)
+  const [copiedSessionId, setCopiedSessionId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+    setSessions(getSavedSessions())
+  }, [])
 
   const updateMember = (i: number, val: string) =>
     setMemberNames(prev => prev.map((n, idx) => (idx === i ? val : n)))
@@ -47,11 +68,33 @@ export function CreateSessionForm()
       if (!res.ok) throw new Error(data.error)
       setResult(data)
       setStep('links')
+      // Save DM link to localStorage for easy access
+      const newSession: SavedSession = {
+        sessionId: data.session.id,
+        sessionName: data.session.name,
+        dmRole: data.session.dmRole,
+        dmToken: data.session.dmToken,
+        savedAt: new Date().toISOString(),
+      }
+      saveSession(newSession)
+      setSessions(prev => [newSession, ...prev])
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong.')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleRemoveSession = (sessionId: string) => {
+    removeSession(sessionId)
+    setSessions(prev => prev.filter(s => s.sessionId !== sessionId))
+  }
+
+  const handleCopySessionLink = (dmToken: string, sessionId: string) => {
+    const url = `${window.location.origin}/dm/${dmToken}`
+    navigator.clipboard.writeText(url)
+    setCopiedSessionId(sessionId)
+    setTimeout(() => setCopiedSessionId(null), 2000)
   }
 
   const copy = (text: string, key: string) =>
@@ -61,8 +104,7 @@ export function CreateSessionForm()
     setTimeout(() => setCopied(null), 2000)
   }
 
-  const copyAll = (r: CreateSessionResponse) =>
-  {
+  const copyAll = (r: CreateSessionResponse) => {
     const lines = [
       `Bag of — ${r.session.name}`,
       '',
@@ -75,13 +117,76 @@ export function CreateSessionForm()
     copy(lines.join('\n'), 'all')
   }
 
+  // ── Saved sessions section (shown in both steps) ──────────
+
+  const savedSessionsSection = mounted && sessions.length > 0 && (
+    <div className="space-y-3">
+      <p className="font-press-start text-8bit-sm text-muted-foreground">
+        Your saved sessions:
+      </p>
+      {sessions.map(session => (
+        <Card key={session.sessionId}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs flex items-center justify-between">
+              <span className="truncate mr-2">{session.sessionName}</span>
+              <Badge variant="destructive">{session.dmRole}</Badge>
+            </CardTitle>
+            <CardDescription className="text-[8px]">
+              Saved {new Date(session.savedAt).toLocaleDateString()}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Link href={`/dm/${session.dmToken}`} className="block">
+              <Button size="sm" className="w-full">
+                Open {session.dmRole} Dashboard
+              </Button>
+            </Link>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                onClick={() => handleCopySessionLink(session.dmToken, session.sessionId)}
+              >
+                {copiedSessionId === session.sessionId ? '✓ Copied!' : 'Copy Link'}
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="destructive">
+                    ✕
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remove &quot;{session.sessionName}&quot;?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This only removes the saved link from this device. The session itself still exists.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleRemoveSession(session.sessionId)}>
+                      Remove
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+
+  // ── Links step ────────────────────────────────────────────
+
   if (step === 'links' && result) {
     return (
       <div className="w-full max-w-lg space-y-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <h1 className="font-press-start text-lg"><span className="text-2xl">🎒</span> Session Ready!</h1>
-            <p className="font-press-start text-[10px] text-muted-foreground leading-relaxed">
+            <p className="font-press-start text-8bit-sm text-muted-foreground leading-relaxed">
               Share each link. These never expire.
             </p>
           </div>
@@ -128,14 +233,18 @@ export function CreateSessionForm()
 
         <Card>
           <CardContent className="pt-4">
-            <p className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400 leading-relaxed">
-              Save these links now. There is no way to retrieve a {result.session.dmRole} link. Player links can be copied again from the {result.session.dmRole === 'Referee' ? "Referee's" : result.session.dmRole + "'s"} dashboard.
+            <p className="font-press-start text-8bit-sm text-yellow-600 dark:text-yellow-400 leading-relaxed">
+              Your {result.session.dmRole} link is saved on this device. Player links can be copied again from the {result.session.dmRole === 'Referee' ? "Referee's" : result.session.dmRole + "'s"} dashboard — but save them somewhere safe too, just in case.
             </p>
           </CardContent>
         </Card>
+
+        {savedSessionsSection}
       </div>
     )
   }
+
+  // ── Form step ─────────────────────────────────────────────
 
   return (
     <div className="w-full max-w-md space-y-6">
@@ -222,6 +331,8 @@ export function CreateSessionForm()
           </Button>
         </CardContent>
       </Card>
+
+      {savedSessionsSection}
     </div>
   )
 }

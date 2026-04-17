@@ -62,12 +62,56 @@
   .font-press-start {
     font-family: var(--font-press-start), monospace;
   }
+
+  /* Responsive 8-bit text sizes — larger on mobile for readability */
+  .text-8bit-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  .text-8bit-md {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+  .text-8bit-sm {
+    font-size: 0.625rem;
+    line-height: 0.875rem;
+  }
+  .text-8bit-xs {
+    font-size: 0.5rem;
+    line-height: 0.75rem;
+  }
+
+  @media (max-width: 640px) {
+    .text-8bit-lg {
+      font-size: 1.25rem;
+      line-height: 1.75rem;
+    }
+    .text-8bit-md {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
+    .text-8bit-sm {
+      font-size: 0.75rem;
+      line-height: 1rem;
+    }
+    .text-8bit-xs {
+      font-size: 0.625rem;
+      line-height: 0.875rem;
+    }
+  }
 }
 
 div input:focus {
   /* box-shadow: var(--accent 5px 5px 5px); */
   /* border: silver .3rem solid; */
   filter: contrast(75%);
+}
+
+.refresh-data {
+  font-size: 1.5rem;
+  align-content: center;
+  justify-content: center;
+  padding-bottom: .6rem;
 }
 
 /* #footer {

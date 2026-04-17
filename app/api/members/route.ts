@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getMemberByToken, updateMemberName, getDMSession, addMember } from '@/db/queries'
+import { getMemberByToken, updateMemberName, getDMSession, addMember, logActivity } from '@/db/queries'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
+  const rateLimited = checkRateLimit(req, 20, 60_000)
+  if (rateLimited) return rateLimited
+
   try {
     const { dmToken, name } = await req.json()
 
@@ -15,6 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     const member = await addMember(session.id, name)
+    await logActivity(session.id, null, session.dmRole, 'member_add', name)
     return NextResponse.json({ member })
   } catch (err) {
     console.error('[POST /api/members]', err)
@@ -23,6 +28,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const rateLimited = checkRateLimit(req, 30, 60_000)
+  if (rateLimited) return rateLimited
+
   try {
     const { token, name } = await req.json()
 
@@ -39,6 +47,7 @@ export async function PATCH(req: NextRequest) {
     if (!success) {
       return NextResponse.json({ error: 'Failed to update name' }, { status: 500 })
     }
+    await logActivity(member.sessionId, member.id, member.name, 'member_rename', name)
 
     return NextResponse.json({ success: true })
   } catch (err) {

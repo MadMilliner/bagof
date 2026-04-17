@@ -1,6 +1,16 @@
 import { sql } from '@vercel/postgres'
 
 export { sql }
+// Export the pool connector for transactions (BEGIN/COMMIT/ROLLBACK)
+export const connect = sql.connect.bind(sql)
+
+// Validate that the database connection string is configured
+if (!process.env.POSTGRES_URL) {
+  throw new Error(
+    'Missing POSTGRES_URL environment variable. ' +
+    'Add it to .env.local (see .env.example) or run: vercel env pull .env.local'
+  )
+}
 
 export async function migrate() {
   await sql`
@@ -48,5 +58,17 @@ export async function migrate() {
   await sql`CREATE INDEX IF NOT EXISTS idx_members_token ON members(token)`
   await sql`CREATE INDEX IF NOT EXISTS idx_items_session ON items(session_id)`
   await sql`CREATE INDEX IF NOT EXISTS idx_items_owner ON items(owner_id)`
-  await sql`CREATE INDEX IF NOT EXISTS idx_sessions_dm_token ON sessions(dm_token)`
+  await sql`
+    CREATE TABLE IF NOT EXISTS activity_log (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+      member_id TEXT REFERENCES members(id) ON DELETE SET NULL,
+      actor_name TEXT NOT NULL,
+      action TEXT NOT NULL,
+      details TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_activity_session ON activity_log(session_id)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_log(session_id, created_at DESC)`
 }

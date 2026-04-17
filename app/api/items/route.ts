@@ -2,36 +2,45 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   getMemberByToken,
   getDMSession,
+  getItemById,
   addItem,
   claimItem,
   offerItem,
   updateItem,
   deleteItem,
-  offerItemSplit
+  offerItemSplit,
+  logActivity,
+  MAX_ITEM_QUANTITY
 } from '@/db/queries'
-import { randomUUID } from 'crypto'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
+  const rateLimited = checkRateLimit(req, 30, 60_000)
+  if (rateLimited) return rateLimited
+
   try {
     const { token, isDM, dmToken, item } = await req.json()
 
     let sessionId: string
     let ownerId: string | null = null
+    let actorName = 'DM' // default for DM actions
 
     if (isDM && dmToken) {
       const session = await getDMSession(dmToken)
       if (!session) return NextResponse.json({ error: 'Invalid DM token' }, { status: 401 })
       sessionId = session.id
+      actorName = session.dmRole
     } else if (token) {
       const member = await getMemberByToken(token)
       if (!member) return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
       sessionId = member.sessionId
       ownerId = member.id
+      actorName = member.name
     } else {
       return NextResponse.json({ error: 'No auth token' }, { status: 401 })
     }
 
-    const qty: number = item.quantity ?? 1
+    const qty: number = Math.min(Math.max(1, Math.floor(item.quantity ?? 1)), MAX_ITEM_QUANTITY)
     const isPool = !ownerId // DM adding always goes to pool as separate items
 
     // If adding to party pool with qty > 1, create N individual records
@@ -49,6 +58,7 @@ export async function POST(req: NextRequest) {
         })
         created.push(single)
       }
+      await logActivity(sessionId, null, actorName, 'item_add', `${item.name} ×${qty}`)
       return NextResponse.json({ items: created, item: created[0] })
     }
 
@@ -63,6 +73,8 @@ export async function POST(req: NextRequest) {
       quantity: qty,
     })
 
+    await logActivity(sessionId, ownerId, actorName, 'item_add', created.name)
+
     return NextResponse.json({ item: created })
   } catch (err) {
     console.error('[POST /api/items]', err)
@@ -71,28 +83,36 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const rateLimited = checkRateLimit(req, 60, 60_000)
+  if (rateLimited) return rateLimited
+
   try {
     const { token, dmToken, itemId, action, updates } = await req.json()
     const isDM = !!dmToken
 
     let memberId: string | null = null
     let sessionId: string | null = null
+    let actorName = 'DM'
 
     if (isDM) {
       const session = await getDMSession(dmToken)
       if (!session) return NextResponse.json({ error: 'Invalid DM token' }, { status: 401 })
       sessionId = session.id
+      actorName = session.dmRole
     } else {
       const member = await getMemberByToken(token)
       if (!member) return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
       memberId = member.id
       sessionId = member.sessionId
+      actorName = member.name
     }
 
     if (action === 'claim') {
       if (!memberId) return NextResponse.json({ error: 'Only members can claim' }, { status: 403 })
-      const ok = await claimItem(itemId, memberId)
+      const ok = await claimItem(itemId, memberId, sessionId!)
       if (!ok) return NextResponse.json({ error: 'Item unavailable' }, { status: 409 })
+      const claimedItem = await getItemById(itemId)
+      await logActivity(sessionId!, memberId, actorName, 'item_claim', claimedItem?.name ?? 'item')
       return NextResponse.json({ success: true })
     }
 
@@ -100,6 +120,7 @@ export async function PATCH(req: NextRequest) {
       if (!memberId) return NextResponse.json({ error: 'Only members can offer' }, { status: 403 })
       const items = await offerItemSplit(itemId, memberId)
       if (!items) return NextResponse.json({ error: 'Item not found' }, { status: 404 })
+      await logActivity(sessionId!, memberId, actorName, 'item_offer', items.map(i => i.name).join(', '))
       return NextResponse.json({ success: true, items })
     }
 
@@ -121,17 +142,24 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const rateLimited = checkRateLimit(req, 30, 60_000)
+  if (rateLimited) return rateLimited
+
   try {
     const { token, dmToken, itemId } = await req.json()
 
     if (dmToken) {
       const session = await getDMSession(dmToken)
       if (!session) return NextResponse.json({ error: 'Invalid DM token' }, { status: 401 })
+      const itemToDelete = await getItemById(itemId)
       await deleteItem(itemId, undefined, session.id)
+      await logActivity(session.id, null, session.dmRole, 'item_delete', itemToDelete?.name ?? 'item')
     } else {
       const member = await getMemberByToken(token)
       if (!member) return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      const itemToDelete = await getItemById(itemId)
       await deleteItem(itemId, member.id)
+      await logActivity(member.sessionId, member.id, member.name, 'item_delete', itemToDelete?.name ?? 'item')
     }
 
     return NextResponse.json({ success: true })

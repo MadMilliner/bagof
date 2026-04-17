@@ -1,13 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/8bit/tabs'
 import { Badge } from '@/components/ui/8bit/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { ItemCard } from '@/components/inventory/ItemCard'
 import { AddItemForm } from '@/components/inventory/AddItemForm'
+import { ItemFilter, filterItems } from '@/components/inventory/ItemFilter'
 import { GoldPanel, CurrencyInput, formatCurrency } from '@/components/gold/GoldPanel'
+import { ActivityLog } from '@/components/ActivityLog'
 import { ThemeToggle } from '@/components/ThemeProvider'
+import { Button } from '@/components/ui/8bit/button'
 import type { Item, Member, Session, ItemType } from '@/types'
 
 interface OtherMember
@@ -37,17 +40,48 @@ export function PlayerDashboard({
 {
   const [myItems, setMyItems] = useState<Item[]>(initialMyItems)
   const [partyPool, setPartyPool] = useState<Item[]>(initialPartyPool)
+  const [otherMembers, setOtherMembers] = useState<OtherMember[]>(initialOtherMembers)
   const [gold, setGold] = useState({ public: member.publicGold, private: member.privateGold, party: session.partyGold })
   const [memberName, setMemberName] = useState(member.name)
   const [isEditingName, setIsEditingName] = useState(false)
   // gold values are in copper pieces (cp)
   const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [poolSearch, setPoolSearch] = useState('')
+  const [poolTypeFilter, setPoolTypeFilter] = useState<ItemType | 'All'>('All')
 
   useEffect(() =>
   {
     setMounted(true)
   }, [])
+
+  // ── Polling: auto-refresh every 30s to stay in sync with DM/other players ──
+  // Skip polls while an action is in-flight to avoid overwriting optimistic updates
+  useEffect(() => {
+    if (!mounted) return
+    const interval = setInterval(() => {
+      if (!loading && document.visibilityState === 'visible') refreshData()
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [mounted, loading])
+
+  const refreshData = useCallback(async () => {
+    setRefreshing(true)
+    try {
+      const res = await fetch(`/api/refresh?token=${memberToken}&role=player`)
+      if (!res.ok) return
+      const data = await res.json()
+      setMyItems(data.myItems)
+      setPartyPool(data.partyPool)
+      setOtherMembers(data.otherMembers)
+      setGold({ public: data.member.publicGold, private: data.member.privateGold, party: data.session.partyGold })
+    } catch {
+      // Silently fail — polling is best-effort
+    } finally {
+      setRefreshing(false)
+    }
+  }, [memberToken])
 
   if (!mounted) return null
 
@@ -67,6 +101,8 @@ export function PlayerDashboard({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setMyItems(prev => [data.item, ...prev])
+    } catch {
+      // No optimistic update to roll back — item wasn't added to state yet
     } finally {
       setLoading(false)
     }
@@ -74,32 +110,48 @@ export function PlayerDashboard({
 
   const claimItem = async (item: Item) =>
   {
+    // Optimistic update
+    setPartyPool(prev => prev.filter(i => i.id !== item.id))
+    setMyItems(prev => [{ ...item, ownerId: member.id }, ...prev])
+
     const res = await fetch('/api/items', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: memberToken, itemId: item.id, action: 'claim' }),
     })
-    if (!res.ok) return
-    setPartyPool(prev => prev.filter(i => i.id !== item.id))
-    setMyItems(prev => [{ ...item, ownerId: member.id }, ...prev])
+    if (!res.ok) {
+      // Roll back
+      setPartyPool(prev => [...prev, item])
+      setMyItems(prev => prev.filter(i => i.id !== item.id))
+    }
   }
 
   // Offer to party: if qty > 1, creates N separate items server-side
   const offerItem = async (item: Item) =>
   {
+    // Optimistic update
+    setMyItems(prev => prev.filter(i => i.id !== item.id))
+
     const res = await fetch('/api/items', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: memberToken, itemId: item.id, action: 'offer' }),
     })
     const data = await res.json()
-    if (!res.ok) return
-    setMyItems(prev => prev.filter(i => i.id !== item.id))
+    if (!res.ok) {
+      // Roll back
+      setMyItems(prev => [item, ...prev])
+      return
+    }
     setPartyPool(prev => [...data.items, ...prev])
   }
 
   const togglePrivate = async (item: Item) =>
   {
+    // Optimistic update
+    const newPrivate = !item.private
+    setMyItems(prev => prev.map(i => i.id === item.id ? { ...i, private: newPrivate } : i))
+
     const res = await fetch('/api/items', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -107,70 +159,94 @@ export function PlayerDashboard({
         token: memberToken,
         itemId: item.id,
         action: 'update',
-        updates: { private: !item.private },
+        updates: { private: newPrivate },
       }),
     })
-    if (!res.ok) return
-    setMyItems(prev => prev.map(i => i.id === item.id ? { ...i, private: !i.private } : i))
+    if (!res.ok) {
+      // Roll back
+      setMyItems(prev => prev.map(i => i.id === item.id ? { ...i, private: item.private } : i))
+    }
   }
 
   const updateItemAction = async (item: Item, updates: Partial<Item>) =>
   {
+    // Optimistic update
+    setMyItems(prev => prev.map(i => i.id === item.id ? { ...i, ...updates } : i))
+
     const res = await fetch('/api/items', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: memberToken, itemId: item.id, action: 'update', updates }),
     })
-    if (!res.ok) return
-    setMyItems(prev => prev.map(i => i.id === item.id ? { ...i, ...updates } : i))
+    if (!res.ok) {
+      // Roll back
+      setMyItems(prev => prev.map(i => i.id === item.id ? item : i))
+    }
   }
 
   const deleteItem = async (item: Item) =>
   {
+    // Optimistic update
+    setMyItems(prev => prev.filter(i => i.id !== item.id))
+
     const res = await fetch('/api/items', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: memberToken, itemId: item.id }),
     })
-    if (!res.ok) return
-    setMyItems(prev => prev.filter(i => i.id !== item.id))
+    if (!res.ok) {
+      // Roll back
+      setMyItems(prev => [item, ...prev])
+    }
   }
 
   const adjustGold = async (deltaCp: number, field: 'publicGold' | 'privateGold') =>
   {
+    // Optimistic update
+    const key = field === 'publicGold' ? 'public' : 'private'
+    setGold(prev => ({ ...prev, [key]: Math.max(0, prev[key] + deltaCp) }))
+
     const res = await fetch('/api/gold', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: memberToken, action: 'adjust', deltaCp, field }),
     })
-    if (!res.ok) return
-    const key = field === 'publicGold' ? 'public' : 'private'
-    setGold(prev => ({ ...prev, [key]: Math.max(0, prev[key] + deltaCp) }))
+    if (!res.ok) {
+      // Roll back
+      setGold(prev => ({ ...prev, [key]: Math.max(0, prev[key] - deltaCp) }))
+    }
   }
 
-  const adjustPartyGold = async (deltaCp: number) =>
-  {
+  const transferToPool = async (amountCp: number) => {
+    if (amountCp < 1) return
+    // Optimistic update
+    setGold(prev => ({ ...prev, public: Math.max(0, prev.public - amountCp), party: prev.party + amountCp }))
+
     const res = await fetch('/api/gold', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: memberToken, action: 'party_adjust', deltaCp }),
+      body: JSON.stringify({ token: memberToken, action: 'transfer_to_pool', amountCp }),
     })
-    if (!res.ok) return
-    setGold(prev => ({ ...prev, party: Math.max(0, prev.party + deltaCp) }))
+    if (!res.ok) {
+      // Roll back
+      setGold(prev => ({ ...prev, public: prev.public + amountCp, party: Math.max(0, prev.party - amountCp) }))
+    }
   }
 
-  const transferToPool = async (amount: number) =>
-  {
-    if (amount <= 0 || amount > gold.public) return
-    await adjustGold(-amount, 'publicGold')
-    await adjustPartyGold(amount)
-  }
+  const transferFromPool = async (amountCp: number) => {
+    if (amountCp < 1) return
+    // Optimistic update
+    setGold(prev => ({ ...prev, party: Math.max(0, prev.party - amountCp), public: prev.public + amountCp }))
 
-  const transferFromPool = async (amount: number) =>
-  {
-    if (amount <= 0 || amount > gold.party) return
-    await adjustPartyGold(-amount)
-    await adjustGold(amount, 'publicGold')
+    const res = await fetch('/api/gold', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: memberToken, action: 'transfer_from_pool', amountCp }),
+    })
+    if (!res.ok) {
+      // Roll back
+      setGold(prev => ({ ...prev, party: prev.party + amountCp, public: Math.max(0, prev.public - amountCp) }))
+    }
   }
 
   const updateName = async () =>
@@ -198,7 +274,8 @@ export function PlayerDashboard({
     }
   }
 
-  const totalOtherItems = initialOtherMembers.reduce((s, o) => s + o.items.length, 0)
+  const totalOtherItems = otherMembers.reduce((s, o) => s + o.items.length, 0)
+  const filteredPool = filterItems(partyPool, poolSearch, poolTypeFilter)
 
   // ── Render ────────────────────────────────────────────────
 
@@ -209,7 +286,7 @@ export function PlayerDashboard({
           <div className="flex items-center gap-3">
             <span className="font-press-start text-2xl"></span>
             <div>
-              <p className="font-press-start text-[10px] text-muted-foreground">Bag of</p>
+              <p className="font-press-start text-8bit-sm text-muted-foreground">Bag of</p>
               {isEditingName ? (
                 <div className="flex items-center gap-2 mt-1">
                   <input
@@ -227,13 +304,18 @@ export function PlayerDashboard({
                   onClick={() => setIsEditingName(true)}
                 >
                   {memberName}
-                  <span className="text-[10px] text-muted-foreground opacity-50">edit</span>
+                  <span className="text-8bit-sm text-muted-foreground opacity-50">edit</span>
                 </h1>
               )}
-              <p className="font-press-start text-[10px] text-muted-foreground mt-1">{session.name}</p>
+              <p className="font-press-start text-8bit-sm text-muted-foreground mt-1">{session.name}</p>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <Button className='refresh-data' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
+              {refreshing ? '⟳' : '↻'}
+            </Button>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -246,6 +328,7 @@ export function PlayerDashboard({
           <TabsTrigger className="grow" value="others">
             Other Members {totalOtherItems > 0 && `(${totalOtherItems})`}
           </TabsTrigger>
+          <TabsTrigger className="grow" value="activity">Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inventory">
@@ -260,7 +343,7 @@ export function PlayerDashboard({
           <AddItemForm onAdd={addItem} isLoading={loading} showPrivateToggle />
           <div className="space-y-2">
             {myItems.length === 0 ? (
-              <p className="font-press-start text-[10px] text-muted-foreground text-center py-8">
+              <p className="font-press-start text-8bit-sm text-muted-foreground text-center py-8">
                 Your pack is empty...
               </p>
             ) : (
@@ -287,7 +370,7 @@ export function PlayerDashboard({
             titleOverride={session.currencyType === 'wealth' ? "Party Bag Wealth" : "Party Bag Gold"}
           />
           <div className="border-2 border-black dark:border-white p-3 space-y-4 bg-card mt-4 mb-4">
-            <p className="font-press-start text-[10px] text-muted-foreground border-b-2 border-black dark:border-white pb-2">
+            <p className="font-press-start text-8bit-sm text-muted-foreground border-b-2 border-black dark:border-white pb-2">
               Transfer Currency
             </p>
             <CurrencyInput
@@ -305,13 +388,21 @@ export function PlayerDashboard({
               />
             </div>
           </div>
+          <ItemFilter
+            search={poolSearch}
+            onSearchChange={setPoolSearch}
+            typeFilter={poolTypeFilter}
+            onTypeFilterChange={setPoolTypeFilter}
+            resultCount={filteredPool.length}
+            totalCount={partyPool.length}
+          />
           <div className="space-y-2">
             {partyPool.length === 0 ? (
-              <p className="font-press-start text-[10px] text-muted-foreground text-center py-8">
+              <p className="font-press-start text-8bit-sm text-muted-foreground text-center py-8">
                 The bag is empty. Nothing to loot!
               </p>
             ) : (
-              partyPool.map(item => (
+              filteredPool.map(item => (
                 <ItemCard
                   key={item.id}
                   item={item}
@@ -325,12 +416,12 @@ export function PlayerDashboard({
 
         <TabsContent value="others">
           <div className="space-y-4">
-            {initialOtherMembers.length === 0 ? (
-              <p className="font-press-start text-[10px] text-muted-foreground text-center py-8">
+            {otherMembers.length === 0 ? (
+              <p className="font-press-start text-8bit-sm text-muted-foreground text-center py-8">
                 No other party members.
               </p>
             ) : (
-              initialOtherMembers.map(({ member: m, items }) => (
+              otherMembers.map(({ member: m, items }) => (
                 <Card key={m.id}>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xs flex items-center justify-between">
@@ -342,7 +433,7 @@ export function PlayerDashboard({
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {items.length === 0 ? (
-                      <p className="font-press-start text-[10px] text-muted-foreground pt-1 pb-2">
+                      <p className="font-press-start text-8bit-sm text-muted-foreground pt-1 pb-2">
                         No public items.
                       </p>
                     ) : (
@@ -355,6 +446,10 @@ export function PlayerDashboard({
               ))
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="activity">
+          <ActivityLog token={memberToken} role="player" />
         </TabsContent>
       </Tabs>
     </div>

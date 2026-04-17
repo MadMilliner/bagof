@@ -64,7 +64,7 @@ export function CurrencyInput({
 
   return (
     <div className="space-y-2">
-      <p className="font-press-start text-[10px] text-muted-foreground">{label}</p>
+      <p className="font-press-start text-8bit-sm text-muted-foreground">{label}</p>
       {currencyType === 'wealth' ? (
         <div className="flex gap-1 items-center">
           <Input
@@ -204,7 +204,7 @@ export function GoldPanel({
         {/* ── Balances ── */}
         <div className="flex gap-4 flex-wrap">
           <div className="flex-1 min-w-[120px]">
-            <p className="font-press-start text-[10px] text-muted-foreground mb-1">
+            <p className="font-press-start text-8bit-sm text-muted-foreground mb-1">
               {titleOverride ? titleOverride : (isDM ? (currencyType === 'wealth' ? 'Total Party Wealth' : 'Total Party Gold') : (currencyType === 'wealth' ? 'Public Wealth' : 'Public Gold'))}
             </p>
             <p className="font-press-start text-base text-yellow-600 dark:text-yellow-400 leading-tight">
@@ -213,7 +213,7 @@ export function GoldPanel({
           </div>
           {showPrivate && (
             <div className="flex-1 min-w-[120px]">
-              <p className="font-press-start text-[10px] text-muted-foreground mb-1">🔒 {currencyType === 'wealth' ? 'Private Wealth' : 'Private Gold'}</p>
+              <p className="font-press-start text-8bit-sm text-muted-foreground mb-1">🔒 {currencyType === 'wealth' ? 'Private Wealth' : 'Private Gold'}</p>
               <p className="font-press-start text-base leading-tight">
                 {formatCurrency(privateGold, currencyType)}
               </p>
@@ -248,7 +248,7 @@ export function GoldPanel({
         {/* ── DM: split gold ── */}
         {isDM && onSplitGold && (
           <div className="border-t-2 border-black dark:border-white pt-3 space-y-2">
-            <p className="font-press-start text-[10px] text-muted-foreground">Split {currencyType === 'wealth' ? 'Wealth' : 'Gold'} Evenly</p>
+            <p className="font-press-start text-8bit-sm text-muted-foreground">Split {currencyType === 'wealth' ? 'Wealth' : 'Gold'} Evenly</p>
             {currencyType === 'wealth' ? (
               <div className="flex gap-1 items-center">
                 <Input type="number" min={0} placeholder="0" value={splitCp}
@@ -275,7 +275,7 @@ export function GoldPanel({
               </div>
             )}
             {perMemberCp > 0 && (
-              <p className="font-press-start text-[10px] text-muted-foreground">
+              <p className="font-press-start text-8bit-sm text-muted-foreground">
                 = {formatCurrency(perMemberCp, currencyType)} each ({memberCount} members)
               </p>
             )}

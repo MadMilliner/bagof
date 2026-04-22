@@ -149,6 +149,7 @@ export function CurrencyInput({
 
 interface GoldPanelProps {
   id?: string
+  className?: string
   publicGold: number      // in copper pieces
   privateGold?: number    // in copper pieces
   showPrivate?: boolean
@@ -164,6 +165,7 @@ interface GoldPanelProps {
 
 export function GoldPanel({
   id,
+  className,
   publicGold,
   privateGold = 0,
   showPrivate = false,
@@ -199,28 +201,28 @@ export function GoldPanel({
   }
 
   return (
-    <Card id={id} className="mb-4">
+    <Card id={id} className={`gold-panel ${id ? `gold-panel-${id}` : ''} ${className || ''} mb-4`.trim()}>
       {!hideHeader && (
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xs"><GiTwoCoins size={20}/> {titleOverride || 'Coin Purse'}</CardTitle>
+        <CardHeader id={id ? `${id}-header` : undefined} className={`gold-panel-header ${id ? `gold-panel-header-${id}` : ''} pb-2`.trim()}>
+          <CardTitle id={id ? `${id}-title` : undefined} className={`gold-panel-title ${id ? `gold-panel-title-${id}` : ''} text-xs`.trim()}><GiTwoCoins size={20}/> {titleOverride || 'Coin Purse'}</CardTitle>
         </CardHeader>
       )}
-      <CardContent className={hideHeader ? 'pt-4 space-y-4' : 'space-y-4'}>
+      <CardContent id={id ? `${id}-content` : undefined} className={`gold-panel-content ${id ? `gold-panel-content-${id}` : ''} ${hideHeader ? 'pt-4 space-y-4' : 'space-y-4'}`.trim()}>
 
         {/* ── Balances ── */}
-        <div className="flex gap-4 flex-wrap">
-          <div className="flex-1 min-w-[120px]">
-            <p className="font-press-start text-8bit-sm text-muted-foreground mb-1">
+        <div id={id ? `${id}-balances` : undefined} className="gold-panel-balances flex gap-4 flex-wrap">
+          <div id={id ? `${id}-public-balance` : undefined} className="gold-panel-public-balance flex-1 min-w-[120px]">
+            <p className="gold-panel-public-label font-press-start text-8bit-sm text-muted-foreground mb-1">
               {titleOverride ? titleOverride : (isDM ? (currencyType === 'wealth' ? 'Total Party Wealth' : 'Total Party Gold') : (currencyType === 'wealth' ? 'Public Wealth' : 'Public Gold'))}
             </p>
-            <p className="font-press-start text-base text-yellow-600 dark:text-yellow-400 leading-tight">
+            <p className="gold-panel-public-amount font-press-start text-base text-yellow-600 dark:text-yellow-400 leading-tight">
               {formatCurrency(publicGold, currencyType)}
             </p>
           </div>
           {showPrivate && (
-            <div className="flex-1 min-w-[120px]">
-              <p className="font-press-start text-8bit-sm text-muted-foreground mb-1">🔒 {currencyType === 'wealth' ? 'Private Wealth' : 'Private Gold'}</p>
-              <p className="font-press-start text-base leading-tight">
+            <div id={id ? `${id}-private-balance` : undefined} className="gold-panel-private-balance flex-1 min-w-[120px]">
+              <p className="gold-panel-private-label font-press-start text-8bit-sm text-muted-foreground mb-1">🔒 {currencyType === 'wealth' ? 'Private Wealth' : 'Private Gold'}</p>
+              <p className="gold-panel-private-amount font-press-start text-base leading-tight">
                 {formatCurrency(privateGold, currencyType)}
               </p>
             </div>
@@ -229,7 +231,7 @@ export function GoldPanel({
 
         {/* ── Player: adjust public gold ── */}
         {!isDM && onAdjustPublic && (
-          <div className="border-t-2 border-black dark:border-white pt-3">
+          <div id={id ? `${id}-adjust-public-section` : undefined} className="gold-panel-adjust-public border-t-2 border-black dark:border-white pt-3">
             <CurrencyInput
               idPrefix="adjust-public-gold"
               label={titleOverride ? `Adjust ${titleOverride}` : (currencyType === 'wealth' ? "Adjust Public Wealth" : "Adjust Public Gold")}
@@ -242,7 +244,7 @@ export function GoldPanel({
 
         {/* ── Player: adjust private gold ── */}
         {!isDM && showPrivate && onAdjustPrivate && (
-          <div className="border-t-2 border-black dark:border-white pt-3">
+          <div id={id ? `${id}-adjust-private-section` : undefined} className="gold-panel-adjust-private border-t-2 border-black dark:border-white pt-3">
             <CurrencyInput
               idPrefix="adjust-private-gold"
               label={currencyType === 'wealth' ? "Adjust Private Wealth" : "Adjust Private Gold"}
@@ -255,40 +257,41 @@ export function GoldPanel({
 
         {/* ── DM: split gold ── */}
         {isDM && onSplitGold && (
-          <div className="border-t-2 border-black dark:border-white pt-3 space-y-2">
-            <p className="font-press-start text-8bit-sm text-muted-foreground">Split {currencyType === 'wealth' ? 'Wealth' : 'Gold'} Evenly</p>
+          <div id={id ? `${id}-split-section` : undefined} className="gold-panel-split-section border-t-2 border-black dark:border-white pt-3 space-y-2">
+            <p id={id ? `${id}-split-label` : undefined} className="gold-panel-split-label font-press-start text-8bit-sm text-muted-foreground">Split {currencyType === 'wealth' ? 'Wealth' : 'Gold'} Evenly</p>
             {currencyType === 'wealth' ? (
-              <div className="flex gap-1 items-center">
+              <div id={id ? `${id}-split-wealth-input` : undefined} className="gold-panel-split-wealth-input flex gap-1 items-center">
                 <Input type="number" min={0} placeholder="0" value={splitCp}
-                  onChange={e => setSplitCp(e.target.value)} className="w-full max-w-24 sm:w-20 text-center" />
+                  onChange={e => setSplitCp(e.target.value)} className="gold-panel-split-wealth-field w-full max-w-24 sm:w-20 text-center" />
                 <span className="font-press-start text-[10px] text-muted-foreground shrink-0">Wealth</span>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-1 sm:items-center">
-                <div className="flex items-center gap-1">
+              <div id={id ? `${id}-split-currency-inputs` : undefined} className="gold-panel-split-currency-inputs grid grid-cols-3 gap-2 sm:flex sm:gap-1 sm:items-center">
+                <div className="gold-panel-split-gp-container flex items-center gap-1">
                   <Input type="number" min={0} placeholder="0" value={splitGp}
-                    onChange={e => setSplitGp(e.target.value)} className="w-full sm:w-20 text-center" />
+                    onChange={e => setSplitGp(e.target.value)} className="gold-panel-split-gp-input w-full sm:w-20 text-center" />
                   <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400 shrink-0">gp</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="gold-panel-split-sp-container flex items-center gap-1">
                   <Input type="number" min={0} placeholder="0" value={splitSp}
-                    onChange={e => setSplitSp(e.target.value)} className="w-full sm:w-20 text-center" />
+                    onChange={e => setSplitSp(e.target.value)} className="gold-panel-split-sp-input w-full sm:w-20 text-center" />
                   <span className="font-press-start text-[10px] text-slate-400 shrink-0">sp</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="gold-panel-split-cp-container flex items-center gap-1">
                   <Input type="number" min={0} placeholder="0" value={splitCp}
-                    onChange={e => setSplitCp(e.target.value)} className="w-full sm:w-20 text-center" />
+                    onChange={e => setSplitCp(e.target.value)} className="gold-panel-split-cp-input w-full sm:w-20 text-center" />
                   <span className="font-press-start text-[10px] text-orange-600 dark:text-orange-400 shrink-0">cp</span>
                 </div>
               </div>
             )}
             {perMemberCp > 0 && (
-              <p className="font-press-start text-8bit-sm text-muted-foreground">
+              <p id={id ? `${id}-split-preview` : undefined} className="gold-panel-split-preview font-press-start text-8bit-sm text-muted-foreground">
                 = {formatCurrency(perMemberCp, currencyType)} each ({memberCount} members)
               </p>
             )}
             <Button
               id="gold-split-btn"
+              className="gold-split-btn"
               size="sm"
               variant="secondary"
               onClick={handleSplit}

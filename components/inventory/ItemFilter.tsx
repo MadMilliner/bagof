@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/8bit/input'
 import type { ItemType } from '@/types'
 
 interface ItemFilterProps {
+  id?: string
+  className?: string
   search: string
   onSearchChange: (value: string) => void
   typeFilter: ItemType | 'All'
@@ -15,6 +17,8 @@ interface ItemFilterProps {
 const TYPES: (ItemType | 'All')[] = ['All', 'Weapon', 'Armor', 'Consumable', 'Other']
 
 export function ItemFilter({
+  id,
+  className,
   search,
   onSearchChange,
   typeFilter,
@@ -23,7 +27,7 @@ export function ItemFilter({
   totalCount,
 }: ItemFilterProps) {
   return (
-    <div id="item-filter" className="space-y-2 mb-3">
+    <div id={id || 'item-filter'} className={`item-filter ${className || ''} space-y-2 mb-3`.trim()}>
       <div className="flex gap-2 items-center flex-wrap">
         <Input
           id="item-search-input"

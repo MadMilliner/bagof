@@ -154,9 +154,9 @@ export function CreateSessionForm()
             {sessions.map(session => (
               <Card key={session.sessionId}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xs flex items-center justify-between">
-                    <span className="truncate mr-2">{session.sessionName}</span>
-                    <Badge variant="destructive">{session.dmRole}</Badge>
+                  <CardTitle className="text-xs flex flex-col gap-1">
+                    <span className="truncate">{session.sessionName}</span>
+                    <Badge variant="destructive" className="self-start">{session.dmRole}</Badge>
                   </CardTitle>
                   <CardDescription className="text-[8px]">
                     Saved {new Date(session.savedAt).toLocaleDateString()}

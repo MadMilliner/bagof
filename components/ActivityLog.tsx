@@ -108,39 +108,43 @@ export function ActivityLog({ token, role }: ActivityLogProps) {
   }
 
   return (
-    <div id="activity-log" className="space-y-2">
-      {visible.map(entry => {
-        const meta = getMeta(entry.action)
-        return (
-          <div
-            key={entry.id}
-            className="flex items-start gap-3 py-2 border-b-2 border-black/10 dark:border-white/10 last:border-0"
-          >
-            <span className="text-lg mt-0.5 shrink-0">{meta.icon}</span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className={`font-press-start text-8bit-sm font-bold ${meta.color}`}>
-                  {meta.label}
-                </span>
-                <span className="font-press-start text-8bit-xs text-muted-foreground">
-                  {timeAgo(entry.createdAt)}
-                </span>
+    <div id="activity-log" className="activity-log space-y-2">
+      <div id="activity-log-entries" className="activity-log-entries">
+        {visible.map(entry => {
+          const meta = getMeta(entry.action)
+          return (
+            <div
+              id={`activity-entry-${entry.id}`}
+              key={entry.id}
+              className="activity-entry flex items-start gap-3 py-2 border-b-2 border-black/10 dark:border-white/10 last:border-0"
+            >
+              <span id={`activity-entry-icon-${entry.id}`} className="activity-entry-icon text-lg mt-0.5 shrink-0">{meta.icon}</span>
+              <div id={`activity-entry-content-${entry.id}`} className="activity-entry-content min-w-0 flex-1">
+                <div className="activity-entry-header flex items-baseline gap-2 flex-wrap">
+                  <span id={`activity-entry-label-${entry.id}`} className={`activity-entry-label font-press-start text-8bit-sm font-bold ${meta.color}`}>
+                    {meta.label}
+                  </span>
+                  <span id={`activity-entry-time-${entry.id}`} className="activity-entry-time font-press-start text-8bit-xs text-muted-foreground">
+                    {timeAgo(entry.createdAt)}
+                  </span>
+                </div>
+                <p id={`activity-entry-details-${entry.id}`} className="activity-entry-details font-press-start text-8bit-sm text-muted-foreground leading-relaxed">
+                  <span className="activity-entry-actor text-foreground">{entry.actorName}</span>
+                  {entry.details && (
+                    <span className="activity-entry-details-text"> — {entry.details}</span>
+                  )}
+                </p>
               </div>
-              <p className="font-press-start text-8bit-sm text-muted-foreground leading-relaxed">
-                <span className="text-foreground">{entry.actorName}</span>
-                {entry.details && (
-                  <> — {entry.details}</>
-                )}
-              </p>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
 
       {entries.length > 5 && (
-        <div className="text-center pt-1">
+        <div id="activity-log-show-more" className="activity-log-show-more text-center pt-1">
           <Button
             id="activity-show-all-btn"
+            className="activity-show-all-btn"
             size="sm"
             variant="outline"
             onClick={() => setExpanded(prev => !prev)}

@@ -127,37 +127,38 @@ export function ItemCard({
   return (
     <>
       {diceNotation && <DiceRollerPopup notation={diceNotation} onClose={() => setDiceNotation(null)} />}
-      <Card id={`item-card-${item.id}`} className="w-full">
-        <CardContent className="p-3">
-          <div className="flex items-start gap-3">
-            <span className="text-xl mt-0.5">{TYPE_ICONS[item.type]}</span>
+      <Card id={`item-card-${item.id}`} className={`item-card item-card-${item.id} w-full`}>
+        <CardContent className="item-card-content p-3">
+          <div className="item-card-main flex items-start gap-3">
+            <span className="item-card-icon text-xl mt-0.5">{TYPE_ICONS[item.type]}</span>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="font-press-start text-xs text-foreground leading-tight">
+            <div className="item-card-body flex-1 min-w-0">
+              <div className="item-card-name-row flex flex-wrap items-center gap-2 mb-1">
+                <span className="item-card-name font-press-start text-xs text-foreground leading-tight">
                   {item.name}
                   {item.quantity > 1 && (
-                    <span className="text-muted-foreground"> ×{item.quantity}</span>
+                    <span className="item-card-quantity text-muted-foreground"> ×{item.quantity}</span>
                   )}
                 </span>
               </div>
 
-              <div className="flex flex-wrap gap-1 mb-2">
-                <Badge variant={TYPE_VARIANT[item.type]}>{item.type}</Badge>
-                {item.private && <Badge variant="outline">🔒 Private</Badge>}
-                {isInPool && <Badge variant="secondary">Party Bag</Badge>}
+              <div className="item-card-badges flex flex-wrap gap-1 mb-2">
+                <Badge id={`item-card-type-badge-${item.id}`} variant={TYPE_VARIANT[item.type]}>{item.type}</Badge>
+                {item.private && <Badge id={`item-card-private-badge-${item.id}`} variant="outline">🔒 Private</Badge>}
+                {isInPool && <Badge id={`item-card-pool-badge-${item.id}`} variant="secondary">Party Bag</Badge>}
               </div>
 
               {!isEditing ? (
                 item.description && (
-                  <div className="font-press-start text-8bit-sm text-muted-foreground leading-relaxed mb-2 break-words">
+                  <div id={`item-card-description-${item.id}`} className="item-card-description font-press-start text-8bit-sm text-muted-foreground leading-relaxed mb-2 break-words">
                     {formatDescription(item.description, setDiceNotation)}
                   </div>
                 )
               ) : (
-                <div className="mb-2 space-y-2 pt-2">
+                <div id={`item-edit-form-${item.id}`} className="item-edit-form mb-2 space-y-2 pt-2">
                   <select
-                    className="font-press-start text-8bit-sm w-full border-2 border-black dark:border-white bg-background px-2 py-2"
+                    id={`item-type-select-${item.id}`}
+                    className="item-type-select font-press-start text-8bit-sm w-full border-2 border-black dark:border-white bg-background px-2 py-2"
                     value={draftType}
                     onChange={e => setDraftType(e.target.value as Item['type'])}
                   >
@@ -167,24 +168,25 @@ export function ItemCard({
                     <option value="Other">Other</option>
                   </select>
                   <Textarea
+                    id={`item-description-textarea-${item.id}`}
                     placeholder="Description (e.g., '1d8+2 damage')"
                     value={draftDesc}
                     onChange={e => setDraftDesc(e.target.value)}
-                    className="min-h-[80px] text-8bit-sm font-press-start"
+                    className="item-description-textarea min-h-[80px] text-8bit-sm font-press-start"
                   />
-                  <p className="font-press-start text-8bit-xs text-muted-foreground mt-1">
+                  <p className="item-dice-tip font-press-start text-8bit-xs text-muted-foreground mt-1">
                     Tip: Use '1d20+5' to make rolls clickable. <FaDiceD20 className="inline-block text-lg" />
                   </p>
-                  <div className="flex gap-2">
-                    <Button id={`item-save-edit-btn-${item.id}`} size="sm" onClick={handleSave} disabled={saving}>Save</Button>
-                    <Button id={`item-cancel-edit-btn-${item.id}`} size="sm" variant="outline" onClick={handleCancel} disabled={saving}>Cancel</Button>
+                  <div id={`item-edit-actions-${item.id}`} className="item-edit-actions flex gap-2">
+                    <Button id={`item-save-edit-btn-${item.id}`} className={`item-save-btn item-save-btn-${item.id}`} size="sm" onClick={handleSave} disabled={saving}>Save</Button>
+                    <Button id={`item-cancel-edit-btn-${item.id}`} className={`item-cancel-btn item-cancel-btn-${item.id}`} size="sm" variant="outline" onClick={handleCancel} disabled={saving}>Cancel</Button>
                   </div>
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2">
+              <div id={`item-actions-${item.id}`} className="item-actions flex flex-wrap gap-2">
                 {isInPool && onClaim && (
-                  <Button id={`item-claim-btn-${item.id}`} size="sm" onClick={() => onClaim(item)}>
+                  <Button id={`item-claim-btn-${item.id}`} className={`item-claim-btn item-claim-btn-${item.id}`} size="sm" onClick={() => onClaim(item)}>
                     Claim
                   </Button>
                 )}
@@ -192,37 +194,37 @@ export function ItemCard({
                 {viewerIsOwner && (
                   <>
                     {onOffer && !isInPool && (
-                      <Button id={`item-offer-btn-${item.id}`} size="sm" variant="secondary" onClick={() => onOffer(item)}>
+                      <Button id={`item-offer-btn-${item.id}`} className={`item-offer-btn item-offer-btn-${item.id}`} size="sm" variant="secondary" onClick={() => onOffer(item)}>
                         Offer to Party
                       </Button>
                     )}
                     {onTogglePrivate && (
-                      <Button id={`item-toggle-private-btn-${item.id}`} size="sm" variant="outline" onClick={() => onTogglePrivate(item)}>
+                      <Button id={`item-toggle-private-btn-${item.id}`} className={`item-toggle-private-btn item-toggle-private-btn-${item.id}`} size="sm" variant="outline" onClick={() => onTogglePrivate(item)}>
                         {item.private ? 'Make Public' : 'Make Private'}
                       </Button>
                     )}
                     {onUpdate && !isEditing && (
-                      <Button id={`item-edit-notes-btn-${item.id}`} size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                      <Button id={`item-edit-notes-btn-${item.id}`} className={`item-edit-notes-btn item-edit-notes-btn-${item.id}`} size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                         Edit Notes
                       </Button>
                     )}
                     {onDelete && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button id={`item-drop-btn-${item.id}`} size="sm" variant="destructive">
+                          <Button id={`item-drop-btn-${item.id}`} className={`item-drop-btn item-drop-btn-${item.id}`} size="sm" variant="destructive">
                             Drop
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Discard {item.name}?</AlertDialogTitle>
-                            <AlertDialogDescription>
+                            <AlertDialogTitle id={`item-drop-dialog-title-${item.id}`}>Discard {item.name}?</AlertDialogTitle>
+                            <AlertDialogDescription id={`item-drop-dialog-description-${item.id}`}>
                               Are you sure you want to drop this item? It will be removed from your inventory permanently.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDelete(item)}>
+                            <AlertDialogAction id={`item-drop-confirm-btn-${item.id}`} onClick={() => onDelete(item)}>
                               Drop Item
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -235,27 +237,27 @@ export function ItemCard({
                 {viewerIsDM && !viewerIsOwner && (
                   <>
                     {onUpdate && !isEditing && (
-                      <Button id={`item-dm-edit-notes-btn-${item.id}`} size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                      <Button id={`item-dm-edit-notes-btn-${item.id}`} className={`item-dm-edit-notes-btn item-dm-edit-notes-btn-${item.id}`} size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                         Edit Notes
                       </Button>
                     )}
                     {onDelete && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button id={`item-dm-remove-btn-${item.id}`} size="sm" variant="destructive">
+                          <Button id={`item-dm-remove-btn-${item.id}`} className={`item-dm-remove-btn item-dm-remove-btn-${item.id}`} size="sm" variant="destructive">
                             Remove
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Remove {item.name}?</AlertDialogTitle>
-                            <AlertDialogDescription>
+                            <AlertDialogTitle id={`item-remove-dialog-title-${item.id}`}>Remove {item.name}?</AlertDialogTitle>
+                            <AlertDialogDescription id={`item-remove-dialog-description-${item.id}`}>
                               {dmRole}, are you sure you want to delete this item from the session?
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDelete(item)}>
+                            <AlertDialogAction id={`item-remove-confirm-btn-${item.id}`} onClick={() => onDelete(item)}>
                               Remove Item
                             </AlertDialogAction>
                           </AlertDialogFooter>

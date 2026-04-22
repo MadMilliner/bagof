@@ -299,18 +299,19 @@ export function PlayerDashboard({
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <div id="player-dashboard" className="min-h-screen bg-background p-4 max-w-2xl mx-auto">
-      <header id="player-header" className="mb-6">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+    <div id="player-dashboard" className="player-dashboard min-h-screen bg-background p-4 max-w-5xl mx-auto">
+      <header id="player-header" className="player-header mb-6 pb-6">
+        <div id="player-header-content" className="player-header-content flex items-start justify-between gap-6">
+          <div id="player-title-section" className="player-title-section flex items-start gap-4 min-w-0 flex-1">
             <span className="font-press-start text-2xl shrink-0"></span>
-            <div className="min-w-0">
+            <div id="player-title-text-container" className="player-title-text-container min-w-0">
               <BagOfLogo />
               {isEditingName ? (
-                <div className="flex items-center gap-2 mt-1 min-w-0">
+                <div id="player-name-edit-container" className="player-name-edit-container flex items-center gap-2 mt-2 min-w-0">
                   <input
                     autoFocus
-                    className="font-press-start text-xs border-2 border-black dark:border-white bg-background px-1 py-0.5 w-full min-w-0 outline-none"
+                    id="player-name-input"
+                    className="player-name-input font-press-start text-xs border-2 border-black dark:border-white bg-background px-1 py-0.5 w-full min-w-0 outline-none"
                     value={memberName}
                     onChange={e => setMemberName(e.target.value)}
                     onBlur={updateName}
@@ -319,18 +320,19 @@ export function PlayerDashboard({
                 </div>
               ) : (
                 <h1
-                  className="font-press-start text-lg leading-tight mt-1 cursor-pointer hover:text-muted-foreground transition-colors flex items-center gap-2 min-w-0"
+                  id="player-name-heading"
+                  className="player-name-heading font-press-start text-lg leading-tight mt-2 cursor-pointer hover:text-muted-foreground transition-colors flex items-center gap-2 min-w-0"
                   onClick={() => setIsEditingName(true)}
                 >
-                  <span className="truncate">{memberName}</span>
-                  <span className="text-8bit-sm text-muted-foreground opacity-50 shrink-0">edit</span>
+                  <span id="player-character-name" className="player-character-name truncate">{memberName}</span>
+                  <span id="player-edit-hint" className="player-edit-hint text-8bit-sm text-muted-foreground opacity-50 shrink-0">edit</span>
                 </h1>
               )}
-              <p className="font-press-start text-8bit-sm text-muted-foreground mt-1 truncate">{session.name}</p>
+              <p id="player-session-name" className="player-session-name font-press-start text-8bit-sm text-muted-foreground mt-2 truncate">{session.name}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button id="player-refresh-btn" className='refresh-data' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
+          <div id="player-action-buttons" className="player-action-buttons flex items-center gap-2 shrink-0">
+            <Button id="player-refresh-btn" className="player-refresh-btn refresh-data" variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
               {refreshing ? '⟳' : '↻'}
             </Button>
             <ThemeToggle />
@@ -338,21 +340,22 @@ export function PlayerDashboard({
         </div>
       </header>
 
-      <Tabs id="player-tabs" defaultValue="inventory">
-        <TabsList>
-          <TabsTrigger id="player-tab-inventory" className="grow" value="inventory">My Inventory</TabsTrigger>
-          <TabsTrigger id="player-tab-pool" className="grow" value="pool">
+      <Tabs id="player-tabs" className="player-tabs" defaultValue="inventory">
+        <TabsList id="player-tabs-list" className="player-tabs-list">
+          <TabsTrigger id="player-tab-inventory" className="player-tab-inventory grow" value="inventory">My Inventory</TabsTrigger>
+          <TabsTrigger id="player-tab-pool" className="player-tab-pool grow" value="pool">
             Party Bag {partyPool.length > 0 && `(${partyPool.length})`}
           </TabsTrigger>
-          <TabsTrigger id="player-tab-others" className="grow" value="others">
+          <TabsTrigger id="player-tab-others" className="player-tab-others grow" value="others">
             Other Members {totalOtherItems > 0 && `(${totalOtherItems})`}
           </TabsTrigger>
-          <TabsTrigger id="player-tab-activity" className="grow" value="activity">Activity</TabsTrigger>
+          <TabsTrigger id="player-tab-activity" className="player-tab-activity grow" value="activity">Activity</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="inventory">
+        <TabsContent id="player-tab-content-inventory" className="player-tab-content-inventory" value="inventory">
           <GoldPanel
             id="player-my-gold"
+            className="player-my-gold"
             publicGold={gold.public}
             privateGold={gold.private}
             showPrivate
@@ -360,10 +363,10 @@ export function PlayerDashboard({
             onAdjustPublic={deltaCp => adjustGold(deltaCp, 'publicGold')}
             onAdjustPrivate={deltaCp => adjustGold(deltaCp, 'privateGold')}
           />
-          <AddItemForm onAdd={addItem} isLoading={loading} showPrivateToggle />
-          <div className="space-y-2">
+          <AddItemForm id="player-add-item-form" className="player-add-item-form" onAdd={addItem} isLoading={loading} showPrivateToggle />
+          <div id="player-inventory-list" className="player-inventory-list space-y-2">
             {myItems.length === 0 ? (
-              <p className="font-press-start text-8bit-sm text-muted-foreground text-center py-8">
+              <p id="player-empty-inventory-message" className="player-empty-inventory-message font-press-start text-8bit-sm text-muted-foreground text-center py-8">
                 Your pack is empty...
               </p>
             ) : (
@@ -383,15 +386,16 @@ export function PlayerDashboard({
           </div>
         </TabsContent>
 
-        <TabsContent value="pool">
+        <TabsContent id="player-tab-content-pool" className="player-tab-content-pool" value="pool">
           <GoldPanel
             id="player-party-bag-gold"
+            className="player-party-bag-gold"
             publicGold={gold.party}
             currencyType={session.currencyType}
             titleOverride={session.currencyType === 'wealth' ? "Party Bag Wealth" : "Party Bag Gold"}
           />
-          <div className="border-2 border-black dark:border-white p-3 space-y-4 bg-card mt-4 mb-4">
-            <p className="font-press-start text-8bit-sm text-muted-foreground border-b-2 border-black dark:border-white pb-2">
+          <div id="player-transfer-section" className="player-transfer-section border-2 border-black dark:border-white p-3 space-y-4 bg-card mt-4 mb-4">
+            <p id="player-transfer-label" className="player-transfer-label font-press-start text-8bit-sm text-muted-foreground border-b-2 border-black dark:border-white pb-2">
               Transfer Currency
             </p>
             <CurrencyInput
@@ -401,7 +405,7 @@ export function PlayerDashboard({
               loading={loading}
               currencyType={session.currencyType}
             />
-            <div className="border-t-2 border-black dark:border-white pt-2">
+            <div id="player-transfer-from-pool-container" className="player-transfer-from-pool-container border-t-2 border-black dark:border-white pt-2">
               <CurrencyInput
                 idPrefix="transfer-from-pool"
                 label="Take from Party Bag"
@@ -412,6 +416,8 @@ export function PlayerDashboard({
             </div>
           </div>
           <ItemFilter
+            id="player-pool-filter"
+            className="player-pool-filter"
             search={poolSearch}
             onSearchChange={setPoolSearch}
             typeFilter={poolTypeFilter}
@@ -419,9 +425,9 @@ export function PlayerDashboard({
             resultCount={filteredPool.length}
             totalCount={partyPool.length}
           />
-          <div className="space-y-2">
+          <div id="player-pool-items-list" className="player-pool-items-list space-y-2">
             {partyPool.length === 0 ? (
-              <p className="font-press-start text-8bit-sm text-muted-foreground text-center py-8">
+              <p id="player-empty-pool-message" className="player-empty-pool-message font-press-start text-8bit-sm text-muted-foreground text-center py-8">
                 The bag is empty. Nothing to loot!
               </p>
             ) : (
@@ -437,24 +443,24 @@ export function PlayerDashboard({
           </div>
         </TabsContent>
 
-        <TabsContent value="others">
-          <div className="space-y-4">
+        <TabsContent id="player-tab-content-others" className="player-tab-content-others" value="others">
+          <div id="player-others-list" className="player-others-list space-y-4">
             {otherMembers.length === 0 ? (
               <p className="font-press-start text-8bit-sm text-muted-foreground text-center py-8">
                 No other party members.
               </p>
             ) : (
               otherMembers.map(({ member: m, items }) => (
-                <Card key={m.id}>
+                <Card key={m.id} id={`player-other-member-card-${m.id}`} className="player-other-member-card">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-xs flex items-center justify-between">
+                    <CardTitle id={`player-other-member-title-${m.id}`} className="player-other-member-title text-xs flex items-center justify-between">
                       <span>⚔️ {m.name}</span>
                       <span className="text-yellow-600 dark:text-yellow-400">
                         {formatCurrency(m.publicGold, session.currencyType)}
                       </span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2">
+                  <CardContent id={`player-other-member-items-${m.id}`} className="player-other-member-items space-y-2">
                     {items.length === 0 ? (
                       <p className="font-press-start text-8bit-sm text-muted-foreground pt-1 pb-2">
                         No public items.
@@ -471,7 +477,7 @@ export function PlayerDashboard({
           </div>
         </TabsContent>
 
-        <TabsContent value="activity">
+        <TabsContent id="player-tab-content-activity" className="player-tab-content-activity" value="activity">
           <ActivityLog token={memberToken} role="player" />
         </TabsContent>
       </Tabs>

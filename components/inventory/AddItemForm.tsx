@@ -12,6 +12,8 @@ const ITEM_TYPES: ItemType[] = ['Weapon', 'Armor', 'Consumable', 'Other']
 
 interface AddItemFormProps
 {
+  id?: string
+  className?: string
   onAdd: (item: {
     name: string
     description: string
@@ -26,6 +28,8 @@ interface AddItemFormProps
 }
 
 export function AddItemForm({
+  id,
+  className,
   onAdd,
   isLoading,
   showPrivateToggle = true,
@@ -52,39 +56,41 @@ export function AddItemForm({
   }
 
   return (
-    <div id="add-item-form" className="space-y-3 mb-4">
-      <div className="flex gap-2">
+    <div id={id} className={`add-item-form ${className || ''} space-y-3 mb-4`.trim()}>
+      <div id="add-item-form-main-row" className="add-item-form-main-row flex gap-2">
         <Input
           id="item-name-input"
+          className="item-name-input flex-1"
           placeholder={placeholder}
           value={name}
           onChange={e => setName(e.target.value)}
           onFocus={() => setExpanded(true)}
           onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          className="flex-1"
         />
-        <Button id="add-item-btn" onClick={handleAdd} disabled={!name.trim() || isLoading}>
+        <Button id="add-item-btn" className="add-item-btn" onClick={handleAdd} disabled={!name.trim() || isLoading}>
           {isLoading ? '...' : 'Add'}
         </Button>
       </div>
 
       {expanded && (
-        <div className="border-2 border-black dark:border-white p-3 space-y-3 [box-shadow:4px_4px_0px_0px_rgba(0,0,0,1)] dark:[box-shadow:4px_4px_0px_0px_rgba(255,255,255,1)]">
+        <div id="add-item-form-expanded" className="add-item-form-expanded border-2 border-black dark:border-white p-3 space-y-3 [box-shadow:4px_4px_0px_0px_rgba(0,0,0,1)] dark:[box-shadow:4px_4px_0px_0px_rgba(255,255,255,1)]">
           <Textarea
+            id="item-description-input"
+            className="item-description-input"
             placeholder="Description (e.g., 'Deals 2d6+3 fire damage')"
             value={description}
             onChange={e => setDescription(e.target.value)}
             rows={2}
           />
-          <p className="font-press-start text-8bit-xs text-muted-foreground mt-1">
+          <p id="add-item-form-tip" className="add-item-form-tip font-press-start text-8bit-xs text-muted-foreground mt-1">
             Tip: Use '1d20+5' to make rolls clickable. <FaDiceD20 className="inline-block text-lg" />
           </p>
 
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="flex items-center gap-2">
-              <span className="font-press-start text-8bit-sm">Type</span>
+          <div id="add-item-form-options-row" className="add-item-form-options-row flex flex-wrap gap-3 items-center">
+            <div id="add-item-type-container" className="add-item-type-container flex items-center gap-2">
+              <span id="add-item-type-label" className="add-item-type-label font-press-start text-8bit-sm">Type</span>
               <Select value={type} onValueChange={v => setType(v as ItemType)}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger id="item-type-select" className="w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -95,20 +101,22 @@ export function AddItemForm({
               </Select>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="font-press-start text-8bit-sm">Qty</span>
+            <div id="add-item-quantity-container" className="add-item-quantity-container flex items-center gap-2">
+              <span id="add-item-quantity-label" className="add-item-quantity-label font-press-start text-8bit-sm">Qty</span>
               <Input
+                id="item-quantity-input"
+                className="item-quantity-input w-16"
                 type="number"
                 min={1}
                 value={quantity}
                 onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-16"
               />
             </div>
 
             {showPrivateToggle && (
-              <label className="flex items-center gap-2 cursor-pointer font-press-start text-8bit-sm">
+              <label id="add-item-private-toggle" className="add-item-private-toggle flex items-center gap-2 cursor-pointer font-press-start text-8bit-sm">
                 <input
+                  id="item-private-checkbox"
                   type="checkbox"
                   checked={isPrivate}
                   onChange={e => setIsPrivate(e.target.checked)}
@@ -119,7 +127,7 @@ export function AddItemForm({
             )}
           </div>
 
-          <Button id="collapse-item-form-btn" variant="ghost" size="sm" onClick={() => setExpanded(false)}>
+          <Button id="collapse-item-form-btn" className="collapse-item-form-btn" variant="ghost" size="sm" onClick={() => setExpanded(false)}>
             Collapse
           </Button>
         </div>

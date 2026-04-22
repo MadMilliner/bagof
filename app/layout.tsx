@@ -1,16 +1,8 @@
+import './globals.css'
 import type { Metadata } from 'next'
 import { Press_Start_2P } from 'next/font/google'
 import { ThemeProvider } from '@/components/ThemeProvider'
-import './globals.css'
-import
-{
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/8bit/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 
 const pressStart = Press_Start_2P({
   weight: '400',

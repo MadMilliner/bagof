@@ -24,6 +24,7 @@ import { FaShieldHalved } from "react-icons/fa6";
 import { GiStandingPotion } from "react-icons/gi";
 import { GiRopeCoil } from "react-icons/gi";
 import { FaDiceD20 } from 'react-icons/fa6'
+import { LuCopy } from 'react-icons/lu'
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/
 const DICE_REGEX = /\b(\d+d\d+(?:[+-]\d+)?)\b/i
@@ -84,6 +85,7 @@ interface ItemCardProps
   onTogglePrivate?: (item: Item) => void
   onDelete?: (item: Item) => void
   onUpdate?: (item: Item, updates: Partial<Item>) => Promise<void>
+  onDuplicate?: (item: Item) => void
   dmRole?: string
 }
 
@@ -96,6 +98,7 @@ export function ItemCard({
   onTogglePrivate,
   onDelete,
   onUpdate,
+  onDuplicate,
   dmRole = 'Dungeon Master'
 }: ItemCardProps)
 {
@@ -203,6 +206,12 @@ export function ItemCard({
                         {item.private ? 'Make Public' : 'Make Private'}
                       </Button>
                     )}
+                    {onDuplicate && !isEditing && (
+                      <Button id={`item-duplicate-btn-${item.id}`} className={`item-duplicate-btn item-duplicate-btn-${item.id}`} size="sm" variant="outline" onClick={() => onDuplicate(item)}>
+                        <LuCopy className="h-3 w-3 mr-1" />
+                        Duplicate
+                      </Button>
+                    )}
                     {onUpdate && !isEditing && (
                       <Button id={`item-edit-notes-btn-${item.id}`} className={`item-edit-notes-btn item-edit-notes-btn-${item.id}`} size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                         Edit Notes
@@ -236,6 +245,12 @@ export function ItemCard({
 
                 {viewerIsDM && !viewerIsOwner && (
                   <>
+                    {onDuplicate && !isEditing && (
+                      <Button id={`item-dm-duplicate-btn-${item.id}`} className={`item-dm-duplicate-btn item-dm-duplicate-btn-${item.id}`} size="sm" variant="outline" onClick={() => onDuplicate(item)}>
+                        <LuCopy className="h-3 w-3 mr-1" />
+                        Duplicate
+                      </Button>
+                    )}
                     {onUpdate && !isEditing && (
                       <Button id={`item-dm-edit-notes-btn-${item.id}`} className={`item-dm-edit-notes-btn item-dm-edit-notes-btn-${item.id}`} size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                         Edit Notes

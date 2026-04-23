@@ -62,6 +62,8 @@ const SheetContent = React.forwardRef<
       {...props}
     >
       {children}
+      {/* Radix Dialog requires a Dialog.Title for accessibility - provide fallback */}
+      <SheetPrimitive.Title className="sr-only">Sheet</SheetPrimitive.Title>
       <SheetPrimitive.Close className="absolute right-4 top-4 border-2 border-black dark:border-white bg-background p-1 opacity-70 transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none data-[state=open]:bg-secondary [box-shadow:2px_2px_0px_0px_rgba(0,0,0,1)] dark:[box-shadow:2px_2px_0px_0px_rgba(255,255,255,1)] active:[box-shadow:none] active:translate-x-[2px] active:translate-y-[2px]">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>

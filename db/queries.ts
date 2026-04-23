@@ -63,6 +63,15 @@ export async function getMemberById(memberId: string): Promise<Member | null> {
   return rows[0] ? mapMember(rows[0]) : null
 }
 
+// ── Session updates ────────────────────────────────────────
+
+export async function updateSessionName(sessionId: string, name: string): Promise<boolean> {
+  const { rowCount } = await sql`
+    UPDATE sessions SET name = ${name} WHERE id = ${sessionId}
+  `
+  return (rowCount ?? 0) > 0
+}
+
 // ── Session access tracking (for cleanup) ────────────────────
 
 export async function touchSessionAccess(sessionId: string): Promise<void> {

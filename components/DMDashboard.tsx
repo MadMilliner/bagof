@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/8bit/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { Badge } from '@/components/ui/8bit/badge'
@@ -22,6 +22,9 @@ import
   SheetTrigger,
 } from '@/components/ui/8bit/sheet'
 import { LuLink } from "react-icons/lu"
+import { LuPencil } from "react-icons/lu"
+import { LuDownload } from "react-icons/lu"
+import { LuUpload } from "react-icons/lu"
 import type { Item, Member, Session, ItemType } from '@/types'
 import { useEffect } from 'react'
 import { saveSession } from '@/lib/savedSessions'
@@ -52,6 +55,12 @@ export function DMDashboard({
   const [refreshing, setRefreshing] = useState(false)
   const [poolSearch, setPoolSearch] = useState('')
   const [poolTypeFilter, setPoolTypeFilter] = useState<ItemType | 'All'>('All')
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ items: number; members: number; gold: number } | null>(null)
+  const [showImportBanner, setShowImportBanner] = useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [sessionName, setSessionName] = useState(session.name)
+  const [isEditingName, setIsEditingName] = useState(false)
 
   useEffect(() =>
   {
@@ -102,6 +111,35 @@ export function DMDashboard({
   const totalGold = members.reduce((s, m) => s + m.publicGold, 0)
 
   // ── Actions ───────────────────────────────────────────────
+
+  const duplicateItem = async (item: Item) => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isDM: true,
+          dmToken,
+          item: {
+            name: item.name,
+            description: item.description,
+            type: item.type,
+            quantity: 1,
+            private: false,
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      const newItems = data.items ?? [data.item]
+      setAllItems(prev => [...newItems, ...prev])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const addToPool = async (itemData: {
     name: string; description: string; type: ItemType; quantity: number; private: boolean
@@ -208,6 +246,89 @@ export function DMDashboard({
     }
   }
 
+  const handleExport = async () => {
+    try {
+      const res = await fetch(`/api/export?token=${dmToken}`)
+      if (!res.ok) throw new Error('Export failed')
+      const data = await res.json()
+      
+      // Create and download JSON file
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `bagof-${session.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('Failed to export session')
+    }
+  }
+
+  const handleImportClick = () => {
+    fileInputRef?.current?.click()
+  }
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setImporting(true)
+    setImportResult(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('dmToken', dmToken)
+      formData.append('file', file)
+
+      const res = await fetch('/api/import', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Import failed')
+
+      setImportResult({ items: data.itemsImported, members: data.membersCreated, gold: data.goldAdjusted })
+      setShowImportBanner(true)
+      // Refresh data after import
+      await refreshData()
+    } catch (err: any) {
+      alert(err.message || 'Failed to import session')
+    } finally {
+      setImporting(false)
+      // Reset file input
+      if (fileInputRef?.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleRename = async () => {
+    if (!sessionName.trim() || sessionName === session.name) {
+      setIsEditingName(false)
+      setSessionName(session.name)
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await fetch('/api/session', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dmToken, name: sessionName.trim() }),
+      })
+      if (!res.ok) throw new Error('Failed to rename')
+      setSessionName(sessionName.trim())
+      setIsEditingName(false)
+    } catch (err) {
+      console.error(err)
+      setSessionName(session.name)
+      setIsEditingName(false)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleAddMember = async () =>
   {
     if (!newMemberName.trim()) return
@@ -238,27 +359,63 @@ export function DMDashboard({
             <div id="dm-title-text-container" className="dm-title-text-container min-w-0">
               <BagOfLogo />
               <h1 id="dm-role-heading" className="dm-role-heading font-press-start text-8bit-lg leading-tight mt-2">{session.dmRole}</h1>
-              <p id="dm-session-name" className="dm-session-name font-press-start text-8bit-sm text-muted-foreground mt-2 truncate">{session.name}</p>
+              <p id="dm-session-name" className="dm-session-name font-press-start text-8bit-sm text-muted-foreground mt-2 truncate">
+                  {isEditingName ? (
+                    <div id="dm-name-edit-container" className="dm-name-edit-container flex items-center gap-2">
+                      <input
+                        autoFocus
+                        id="dm-session-name-input"
+                        className="dm-session-name-input font-press-start text-8bit-sm border-2 border-black dark:border-white bg-background px-1 py-0.5 w-full min-w-0 outline-none"
+                        value={sessionName}
+                        onChange={e => setSessionName(e.target.value)}
+                        onBlur={handleRename}
+                        onKeyDown={e => e.key === 'Enter' && handleRename()}
+                      />
+                    </div>
+                  ) : (
+                    <span className="cursor-pointer hover:text-foreground transition-colors flex items-center gap-2" onClick={() => setIsEditingName(true)}>
+                      <span className="truncate">{session.name}</span>
+                      <LuPencil className="h-3 w-3 shrink-0 opacity-50" />
+                    </span>
+                  )}
+                </p>
             </div>
           </div>
-            <div id="dm-action-buttons" className="dm-action-buttons flex items-center gap-2 shrink-0">
-              <Button id="dm-refresh-btn" className='dm-refresh-btn refresh-data' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
-                {refreshing ? '⟳' : '↻'}
-              </Button>
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button id="dm-manage-players-btn" className="dm-manage-players-btn" variant="outline" size="sm" title="Share player links">
-                  <LuLink className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Manage Players and Links</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
+            <div id="dm-action-buttons" className="dm-action-buttons flex flex-col gap-2 shrink-0">
+              <div id="dm-primary-actions" className="dm-primary-actions flex items-center gap-2">
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button id="dm-manage-players-btn" className="dm-manage-players-btn" variant="outline" size="sm" title="Share player links">
+                    <LuLink className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Manage Players</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
                 <SheetHeader>
                   <SheetTitle id="player-links-dialog-title">Player Access Links</SheetTitle>
                   <SheetDescription id="player-links-dialog-description">
                     Share these unique links with your players so they can manage their inventories.
                   </SheetDescription>
                 </SheetHeader>
+
+                {/* Import result message */}
+                {showImportBanner && importResult && (
+                  <div id="import-result-banner" className="import-result-banner mt-4 p-3 bg-green-100 dark:bg-green-900 border-2 border-green-600 dark:border-green-400 rounded text-center relative">
+                    <button
+                      onClick={() => setShowImportBanner(false)}
+                      className="absolute top-1 right-2 text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 text-lg font-bold"
+                      aria-label="Dismiss"
+                    >
+                      ×
+                    </button>
+                    <p className="font-press-start text-8bit-sm text-green-800 dark:text-green-200">
+                      ✅ Imported!
+                    </p>
+                    <p className="font-press-start text-8bit-xs text-green-700 dark:text-green-300 mt-1">
+                      {importResult.items} items, {importResult.members} members, {importResult.gold} gold changes
+                    </p>
+                  </div>
+                )}
 
                 <div id="add-member-section" className="add-member-section mt-6 border-b-2 border-black dark:border-white pb-6">
                   <p id="add-member-label" className="add-member-label font-press-start text-8bit-sm font-bold mb-3">Add New Member</p>
@@ -283,9 +440,9 @@ export function DMDashboard({
                   </div>
                 </div>
 
-                <div id="members-list-section" className="members-list-section mt-6 space-y-6 overflow-y-auto max-h-[60vh] pr-2">
+                <div id="members-list-section" className="members-list-section mt-6 space-y-6 overflow-y-auto max-h-[70vh] pr-2 pb-4">
                   {members.map(m => (
-                    <div key={m.id} id={`dm-member-${m.id}`} className="dm-member space-y-2">                        <p className="font-press-start text-8bit-sm font-bold text-foreground">⚔️ {m.name}</p>
+                    <div key={m.id} id={`dm-member-${m.id}`} className="dm-member space-y-2 min-h-0">                        <p className="font-press-start text-8bit-sm font-bold text-foreground">⚔️ {m.name}</p>
                       <div className="flex gap-2">
                         <Input
                           readOnly
@@ -294,7 +451,7 @@ export function DMDashboard({
                         />
                         <Button
                           id={`dm-copy-player-link-btn-${m.id}`}
-                          className={`dm-copy-player-link-btn dm-copy-player-link-btn-${m.id} h-8 text-8bit-sm`}
+                          className={`dm-copy-player-link-btn dm-copy-player-link-btn-${m.id} h-8 text-8bit-sm shrink-0`}
                           size="sm"
                           variant="secondary"
                           onClick={() =>
@@ -310,10 +467,32 @@ export function DMDashboard({
                   ))}
                 </div>
               </SheetContent>
-            </Sheet>
-            <Badge id="dm-role-badge" variant="destructive" className="dm-role-badge text-8bit-xs hidden sm:inline-flex">{session.dmRole}</Badge>
-            <ThemeToggle />
-          </div>
+                </Sheet>
+                <Badge id="dm-role-badge" variant="destructive" className="dm-role-badge text-8bit-xs hidden sm:inline-flex">{session.dmRole}</Badge>
+                <ThemeToggle />
+              </div>
+              {/* Hidden file input for import */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportFile}
+                className="hidden"
+              />
+              <div id="dm-secondary-actions" className="dm-secondary-actions flex items-center gap-2">
+                <Button id="dm-refresh-btn" className='dm-refresh-btn refresh-data' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
+                  {refreshing ? '⟳' : '↻'}
+                </Button>
+                <Button id="dm-export-btn" className="dm-export-btn" variant="outline" size="sm" onClick={handleExport} title="Export session data">
+                  <LuDownload className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+                <Button id="dm-import-btn" className="dm-import-btn" variant="outline" size="sm" onClick={handleImportClick} disabled={importing} title="Import session data">
+                  <LuUpload className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{importing ? 'Importing...' : 'Import'}</span>
+                </Button>
+              </div>
+            </div>
         </div>
       </header>
 
@@ -365,7 +544,7 @@ export function DMDashboard({
               </p>
             ) : (
               filteredPool.map(item => (
-                <ItemCard key={item.id} item={item} viewerIsDM onDelete={deleteItem} onUpdate={updateItemAction} dmRole={session.dmRole} />
+                <ItemCard key={item.id} item={item} viewerIsDM onDelete={deleteItem} onUpdate={updateItemAction} onDuplicate={duplicateItem} dmRole={session.dmRole} />
               ))
             )}
           </div>
@@ -398,6 +577,7 @@ export function DMDashboard({
                           viewerIsDM
                           onDelete={deleteItem}
                           onUpdate={updateItemAction}
+                          onDuplicate={duplicateItem}
                           dmRole={session.dmRole}
                         />
                       ))

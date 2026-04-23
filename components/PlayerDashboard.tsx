@@ -187,6 +187,33 @@ export function PlayerDashboard({
     }
   }
 
+  const duplicateItem = async (item: Item) => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: memberToken,
+          item: {
+            name: item.name,
+            description: item.description,
+            type: item.type,
+            quantity: 1,
+            private: item.private,
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setMyItems(prev => [data.item, ...prev])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const updateItemAction = async (item: Item, updates: Partial<Item>) =>
   {
     // Optimistic update
@@ -379,6 +406,7 @@ export function PlayerDashboard({
                   onTogglePrivate={togglePrivate}
                   onDelete={deleteItem}
                   onUpdate={updateItemAction}
+                  onDuplicate={duplicateItem}
                   dmRole={session.dmRole}
                 />
               ))

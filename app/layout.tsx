@@ -50,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode })
             <CardContent>
               <p>All rights reserved. Website design and content are protected by copyright law. Built by DMs, for DMs.</p>
               <p>Join our <a className='text-stone-500 underline' href="https://discord.gg/m4AnYSDueM" target="_blank">Discord server</a> for updates and to provide feedback.</p>
+              <p>Please also check out our <a href="http://battletracker.simulacrumtechnologies.com/" target="_blank" className="text-stone-500 underline">Battle Tracker</a> app.</p>
             </CardContent>
             <CardFooter>
             </CardFooter>

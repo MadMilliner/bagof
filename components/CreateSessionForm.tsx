@@ -18,15 +18,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/8bit/alert-dialog'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/8bit/accordion'
 import type { CreateSessionResponse } from '@/types'
 import { BagOfLogo } from '@/components/BagOfLogo'
 import { saveSession, getSavedSessions, removeSession, type SavedSession, savePlayerLink, getSavedPlayerLinks, removePlayerLink, type SavedPlayerLink } from '@/lib/savedSessions'
+import { SavedPlayerLinks } from '@/components/SavedPlayerLinks'
+import { SavedCampaigns } from '@/components/SavedCampaigns'
 
 type Step = 'form' | 'links'
 
@@ -142,134 +138,26 @@ export function CreateSessionForm()
   // ── Saved links section (shown in both steps) ──────────
 
   const savedLinksSection = mounted && (sessions.length > 0 || playerLinks.length > 0) && (
-    <div id="saved-links-section" className="w-full border-2 border-black dark:border-white [box-shadow:4px_4px_0px_0px_rgba(0,0,0,1)] dark:[box-shadow:4px_4px_0px_0px_rgba(255,255,255,1)] px-4">
-      <Accordion type="multiple" className="w-full">
-      {/* ── Campaigns (DM links) ── */}
-      {sessions.length > 0 && (
-        <AccordionItem value="campaigns">
-          <AccordionTrigger id="your-campaigns-heading" className="text-muted-foreground">
-            Your campaigns ({sessions.length})
-          </AccordionTrigger>
-          <AccordionContent className="space-y-3">
-            {sessions.map(session => (
-              <Card key={session.sessionId}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs flex flex-col gap-1">
-                    <span className="truncate">{session.sessionName}</span>
-                    <Badge variant="destructive" className="self-start">{session.dmRole}</Badge>
-                  </CardTitle>
-                  <CardDescription className="text-[8px]">
-                    Saved {new Date(session.savedAt).toLocaleDateString()}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Link href={`/dm/${session.dmToken}`} className="block">
-                    <Button id={`open-dm-dashboard-btn-${session.sessionId}`} size="sm" className="w-full">
-                      Open {session.dmRole} Dashboard
-                    </Button>
-                  </Link>
-                  <div className="flex gap-2">
-                    <Button
-                      id={`copy-dm-link-btn-${session.sessionId}`}
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => handleCopySessionLink(session.dmToken, session.sessionId)}
-                    >
-                      {copiedSessionId === session.sessionId ? '✓ Copied!' : 'Copy Link'}
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="destructive">
-                          ✕
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remove &quot;{session.sessionName}&quot;?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This only removes the saved link from this device. The campaign still exists.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleRemoveSession(session.sessionId)}>
-                            Remove
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </AccordionContent>
-        </AccordionItem>
-      )}
+    <div id="saved-links-section" className="w-full border-2 border-black dark:border-white [box-shadow:4px_4px_0px_0px_rgba(0,0,0,1)] dark:[box-shadow:4px_4px_0px_0px_rgba(255,255,255,1)] px-4 py-4">
+      {(sessions.length > 0 || playerLinks.length > 0) && (
+        <div id="saved-links-flex-container" className="flex flex-wrap gap-4">
+          {/* ── Campaigns (DM links) ── */}
+          <SavedCampaigns
+            sessions={sessions}
+            onCopy={handleCopySessionLink}
+            onRemove={handleRemoveSession}
+            copiedSessionId={copiedSessionId}
+          />
 
-      {/* ── Characters (Player links) ── */}
-      {playerLinks.length > 0 && (
-        <AccordionItem value="characters">
-          <AccordionTrigger id="your-characters-heading" className="text-muted-foreground">
-            Your characters ({playerLinks.length})
-          </AccordionTrigger>
-          <AccordionContent className="space-y-3">
-            {playerLinks.map(link => (
-              <Card key={link.memberId}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs flex items-center justify-between">
-                    <span className="truncate mr-2">⚔️ {link.memberName}</span>
-                    <Badge variant="secondary">{link.sessionName}</Badge>
-                  </CardTitle>
-                  <CardDescription className="text-[8px]">
-                    {link.dmRole} campaign · Saved {new Date(link.savedAt).toLocaleDateString()}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Link href={`/p/${link.memberToken}`} className="block">
-                    <Button id={`open-player-dashboard-btn-${link.memberId}`} size="sm" variant="secondary" className="w-full">
-                      Open Character Sheet
-                    </Button>
-                  </Link>
-                  <div className="flex gap-2">
-                    <Button
-                      id={`copy-player-link-btn-${link.memberId}`}
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => handleCopyPlayerLink(link.memberToken, link.memberId)}
-                    >
-                      {copiedPlayerId === link.memberId ? '✓ Copied!' : 'Copy Link'}
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="destructive">
-                          ✕
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remove &quot;{link.memberName}&quot;?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This only removes the saved link from this device. The character still exists.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleRemovePlayerLink(link.memberId)}>
-                            Remove
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </AccordionContent>
-        </AccordionItem>
+          {/* ── Characters (Player links) ── */}
+          <SavedPlayerLinks
+            playerLinks={playerLinks}
+            onCopy={handleCopyPlayerLink}
+            onRemove={handleRemovePlayerLink}
+            copiedPlayerId={copiedPlayerId}
+          />
+        </div>
       )}
-      </Accordion>
     </div>
   )
 
@@ -277,7 +165,7 @@ export function CreateSessionForm()
 
   if (step === 'links' && result) {
     return (
-      <div id="session-links-step" className="w-full max-w-lg space-y-4">
+      <div id="session-links-step" className="w-full max-w-2xl mx-auto space-y-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <h1 className="font-press-start text-lg"><span className="text-2xl">🎒</span> Session Ready!</h1>
@@ -346,7 +234,7 @@ export function CreateSessionForm()
   // ── Form step ─────────────────────────────────────────────
 
   return (
-    <div id="create-session-form" className="w-full max-w-md space-y-6">
+    <div id="create-session-form" className="w-full max-w-2xl mx-auto space-y-6">
       <div className="flex items-start justify-between">
         <div className="text-center flex-1">
           <BagOfLogo variant="large" />

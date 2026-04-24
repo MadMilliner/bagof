@@ -2,6 +2,12 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/8bit/button'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/8bit/accordion'
 import { Feature1 } from '@/components/ui/8bit/blocks/feature1'
 import {
   AlertDialog,
@@ -85,15 +91,28 @@ export function SavedPlayerLinks({
   }))
 
   return (
-    <div id='saved-characters-column' className='saved-characters-column flex-1 min-w-[280px]'>
-      <Feature1
-        title={`Your characters (${playerLinks.length})`}
-        description='Click to open your character sheet or copy the link to share with others.'
-        items={items}
-        columns={3}
-        inline
-        className='flex-1 min-w-[280px]'
-      />
+    <div id='saved-characters-column' className='saved-characters-column min-w-[280px]'>
+      <Accordion type='single' collapsible className='w-full'>
+        <AccordionItem value='characters'>
+          <AccordionTrigger className='text-left'>
+            <div className='flex items-center gap-2'>
+              <span>⚔️</span>
+              <span className='font-press-start text-xs'>Your characters ({playerLinks.length})</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <p className='font-press-start text-[10px] text-muted-foreground mb-4'>
+              Click to open your character sheet or copy the link to share with others.
+            </p>
+            <Feature1
+              items={items}
+              columns={3}
+              inline
+              className='min-w-[280px]'
+            />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   )
 }

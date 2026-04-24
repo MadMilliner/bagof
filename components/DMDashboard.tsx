@@ -11,7 +11,7 @@ import { AddItemForm } from '@/components/inventory/AddItemForm'
 import { ItemFilter, filterItems } from '@/components/inventory/ItemFilter'
 import { GoldPanel } from '@/components/gold/GoldPanel'
 import { ActivityLog } from '@/components/ActivityLog'
-import { ThemeToggle } from '@/components/ThemeProvider'
+import { ThemeSelect, ThemeToggle } from '@/components/ThemeProvider'
 import
 {
   Sheet,
@@ -351,7 +351,7 @@ export function DMDashboard({
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <div id="dm-dashboard" className="dm-dashboard min-h-screen bg-background p-4 max-w-5xl mx-auto">
+    <div id="dm-dashboard" className="dm-dashboard flex-1 bg-background p-4 max-w-5xl mx-auto">
       <header id="dm-header" className="dm-header mb-6 pb-6">
         <div id="dm-header-content" className="dm-header-content flex items-start justify-between gap-6">
           <div id="dm-title-section" className="dm-title-section flex items-start gap-4 min-w-0 flex-1">
@@ -442,18 +442,34 @@ export function DMDashboard({
 
                 <div id="members-list-section" className="members-list-section mt-6 space-y-6 overflow-y-auto max-h-[70vh] pr-2 pb-4">
                   {members.map(m => (
-                    <div key={m.id} id={`dm-member-${m.id}`} className="dm-member space-y-2 min-h-0">                        <p className="font-press-start text-8bit-sm font-bold text-foreground">⚔️ {m.name}</p>
-                      <div className="flex gap-2">
+                    <div key={m.id} id={`dm-member-${m.id}`} className="dm-member space-y-2 min-h-0">
+                      <p className="font-press-start text-8bit-sm font-bold text-foreground">⚔️ {m.name}</p>
                         <Input
                           readOnly
                           value={origin ? `${origin}/p/${m.token}` : `/p/${m.token}`}
                           className="dm-player-link-input text-8bit-sm h-8"
                         />
+                      <div className="flex gap-2">
                         <Button
-                          id={`dm-copy-player-link-btn-${m.id}`}
-                          className={`dm-copy-player-link-btn dm-copy-player-link-btn-${m.id} h-8 text-8bit-sm shrink-0`}
+                          asChild
+                          id={`dm-open-player-link-btn-${m.id}`}
+                          className={`dm-open-player-link-btn dm-open-player-link-btn-${m.id} h-8 text-8bit-sm flex-1`}
                           size="sm"
                           variant="secondary"
+                        >
+                          <a
+                            href={`/p/${m.token}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Open
+                          </a>
+                        </Button>
+                        <Button
+                          id={`dm-copy-player-link-btn-${m.id}`}
+                          className={`dm-copy-player-link-btn dm-copy-player-link-btn-${m.id} h-8 text-8bit-sm flex-1`}
+                          size="sm"
+                          variant="outline"
                           onClick={() =>
                           {
                             const url = origin ? `${origin}/p/${m.token}` : `${window.location.origin}/p/${m.token}`
@@ -469,6 +485,7 @@ export function DMDashboard({
               </SheetContent>
                 </Sheet>
                 <Badge id="dm-role-badge" variant="destructive" className="dm-role-badge text-8bit-xs hidden sm:inline-flex">{session.dmRole}</Badge>
+                <ThemeSelect />
                 <ThemeToggle />
               </div>
               {/* Hidden file input for import */}

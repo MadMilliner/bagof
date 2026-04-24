@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/8bit/button'
 import { Input } from '@/components/ui/8bit/input'
 import { Badge } from '@/components/ui/8bit/badge'
-import { ThemeToggle } from '@/components/ThemeProvider'
+import { ThemeSelect, ThemeToggle } from '@/components/ThemeProvider'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -139,8 +139,7 @@ export function CreateSessionForm()
 
   const savedLinksSection = mounted && (sessions.length > 0 || playerLinks.length > 0) && (
     <div id="saved-links-section" className="w-full border-2 border-black dark:border-white [box-shadow:4px_4px_0px_0px_rgba(0,0,0,1)] dark:[box-shadow:4px_4px_0px_0px_rgba(255,255,255,1)] px-4 py-4">
-      {(sessions.length > 0 || playerLinks.length > 0) && (
-        <div id="saved-links-flex-container" className="flex flex-wrap gap-4">
+        <div id="saved-links-container" className="flex flex-col gap-4">
           {/* ── Campaigns (DM links) ── */}
           <SavedCampaigns
             sessions={sessions}
@@ -157,7 +156,6 @@ export function CreateSessionForm()
             copiedPlayerId={copiedPlayerId}
           />
         </div>
-      )}
     </div>
   )
 
@@ -173,7 +171,10 @@ export function CreateSessionForm()
               Share each link. These never expire.
             </p>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <ThemeSelect />
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* Copy all button */}
@@ -242,7 +243,10 @@ export function CreateSessionForm()
             Party loot manager. No accounts.
           </p>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <ThemeSelect />
+          <ThemeToggle />
+        </div>
       </div>
 
       <Card>

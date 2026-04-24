@@ -22,26 +22,36 @@ export default function RootLayout({ children }: { children: React.ReactNode })
 {
   return (
     <html lang="en" className={pressStart.variable} suppressHydrationWarning>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased flex flex-col min-h-[100dvh]">
         <script
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                let theme = localStorage.getItem('bag-of-theme');
-                if (!theme) {
-                  theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                // Migrate old 'bag-of-theme' key (values were 'dark'/'light')
+                const oldTheme = localStorage.getItem('bag-of-theme');
+                if (oldTheme === 'dark' || oldTheme === 'light') {
+                  const migratedSlug = oldTheme === 'dark' ? 'default' : 'soft-pop';
+                  localStorage.setItem('bag-of-color-theme', migratedSlug);
+                  localStorage.setItem('bag-of-mode', oldTheme);
+                  localStorage.removeItem('bag-of-theme');
                 }
-                if (theme === 'dark') {
+                const mode = localStorage.getItem('bag-of-mode');
+                const themeSlug = localStorage.getItem('bag-of-color-theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const isDark = mode === 'dark' || (!mode && prefersDark);
+                if (isDark) {
                   document.documentElement.classList.add('dark');
-                } else {
-                  document.documentElement.classList.remove('dark');
+                }
+                const slug = themeSlug || (prefersDark ? 'default' : 'soft-pop');
+                if (slug && slug !== 'default') {
+                  document.documentElement.setAttribute('data-theme', slug);
                 }
               } catch (_) {}
             `,
           }}
         />
         <ThemeProvider>{children}</ThemeProvider>
-        <div id="footer" className='h-[5dvh] ps-10 pe-10 pt-[2dvh] pb-[2dvh]'>
+        <div id="footer" className='ps-10 pe-10 pt-4 pb-4'>
           <Card>
             <CardHeader>
               <CardTitle></CardTitle>

@@ -8,7 +8,7 @@ import { AddItemForm } from '@/components/inventory/AddItemForm'
 import { ItemFilter, filterItems } from '@/components/inventory/ItemFilter'
 import { GoldPanel, CurrencyInput, formatCurrency } from '@/components/gold/GoldPanel'
 import { ActivityLog } from '@/components/ActivityLog'
-import { ThemeToggle } from '@/components/ThemeProvider'
+import { ThemeSelect, ThemeToggle } from '@/components/ThemeProvider'
 import { Button } from '@/components/ui/8bit/button'
 import type { Item, Member, Session, ItemType } from '@/types'
 import { savePlayerLink } from '@/lib/savedSessions'
@@ -326,7 +326,7 @@ export function PlayerDashboard({
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <div id="player-dashboard" className="player-dashboard min-h-screen bg-background p-4 max-w-5xl mx-auto">
+    <div id="player-dashboard" className="player-dashboard flex-1 bg-background p-4 max-w-5xl mx-auto">
       <header id="player-header" className="player-header mb-6 pb-6">
         <div id="player-header-content" className="player-header-content flex items-start justify-between gap-6">
           <div id="player-title-section" className="player-title-section flex items-start gap-4 min-w-0 flex-1">
@@ -362,6 +362,7 @@ export function PlayerDashboard({
             <Button id="player-refresh-btn" className="player-refresh-btn refresh-data" variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
               {refreshing ? '⟳' : '↻'}
             </Button>
+            <ThemeSelect />
             <ThemeToggle />
           </div>
         </div>

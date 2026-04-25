@@ -56,8 +56,16 @@ export async function migrate() {
 
   await sql`CREATE INDEX IF NOT EXISTS idx_members_session ON members(session_id)`
   await sql`CREATE INDEX IF NOT EXISTS idx_members_token ON members(token)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_members_session_created ON members(session_id, created_at ASC)`
   await sql`CREATE INDEX IF NOT EXISTS idx_items_session ON items(session_id)`
   await sql`CREATE INDEX IF NOT EXISTS idx_items_owner ON items(owner_id)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_items_session_created ON items(session_id, created_at DESC)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_items_owner_private_created ON items(owner_id, private, created_at DESC)`
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_items_pool_visible_created
+    ON items(session_id, created_at DESC)
+    WHERE owner_id IS NULL AND private = FALSE
+  `
   await sql`
     CREATE TABLE IF NOT EXISTS activity_log (
       id TEXT PRIMARY KEY,

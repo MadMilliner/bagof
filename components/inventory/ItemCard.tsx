@@ -131,13 +131,13 @@ export function ItemCard({
     <>
       {diceNotation && <DiceRollerPopup notation={diceNotation} onClose={() => setDiceNotation(null)} />}
       <Card id={`item-card-${item.id}`} className={`item-card item-card-${item.id} w-full`}>
-        <CardContent className="item-card-content p-3">
-          <div className="item-card-main flex items-start gap-3">
-            <span className="item-card-icon text-xl mt-0.5">{TYPE_ICONS[item.type]}</span>
+        <CardContent className="item-card-content p-2 sm:p-3 overflow-x-hidden min-w-0">
+          <div className="item-card-main flex items-start gap-2 sm:gap-3 min-w-0">
+            <span className="item-card-icon text-lg sm:text-xl mt-0.5 shrink-0">{TYPE_ICONS[item.type]}</span>
 
             <div className="item-card-body flex-1 min-w-0">
               <div className="item-card-name-row flex flex-wrap items-center gap-2 mb-1">
-                <span className="item-card-name font-press-start text-xs text-foreground leading-tight">
+                <span className="item-card-name font-press-start text-xs text-foreground leading-tight break-words min-w-0">
                   {item.name}
                   {item.quantity > 1 && (
                     <span className="item-card-quantity text-muted-foreground"> ×{item.quantity}</span>

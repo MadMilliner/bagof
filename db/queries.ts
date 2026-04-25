@@ -514,15 +514,31 @@ export async function getOtherMembersPublicItems(
 ): Promise<{ member: Member; items: Item[] }[]> {
   const allMembers = await getSessionMembers(sessionId)
   const others = allMembers.filter(m => m.id !== excludeMemberId)
+  if (others.length === 0) return []
 
-  const result: { member: Member; items: Item[] }[] = []
-  for (const m of others) {
-    const { rows } = await sql`
-      SELECT * FROM items
-      WHERE owner_id = ${m.id} AND private = FALSE
-      ORDER BY created_at DESC
-    `
-    result.push({ member: m, items: rows.map(mapItem) })
+  const { rows } = await sql`
+    SELECT * FROM items
+    WHERE session_id = ${sessionId}
+      AND owner_id IS NOT NULL
+      AND owner_id != ${excludeMemberId}
+      AND private = FALSE
+    ORDER BY created_at DESC
+  `
+
+  const itemsByOwner = new Map<string, Item[]>()
+  for (const row of rows) {
+    const item = mapItem(row)
+    if (!item.ownerId) continue
+    const existing = itemsByOwner.get(item.ownerId)
+    if (existing) {
+      existing.push(item)
+    } else {
+      itemsByOwner.set(item.ownerId, [item])
+    }
   }
-  return result
+
+  return others.map(member => ({
+    member,
+    items: itemsByOwner.get(member.id) ?? [],
+  }))
 }

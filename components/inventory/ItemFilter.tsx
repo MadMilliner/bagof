@@ -35,7 +35,7 @@ export function ItemFilter({
           placeholder="Search items..."
           value={search}
           onChange={e => onSearchChange(e.target.value)}
-          className="flex-1 min-w-[120px] text-8bit-sm h-9"
+          className="flex-1 min-w-0 text-8bit-sm h-9"
         />
         <select
           className="font-press-start text-8bit-sm border-2 border-black dark:border-white bg-background px-2 py-1 h-9"

@@ -44,7 +44,7 @@ export function SavedCampaigns({
     badge: session.dmRole,
     children: (
       <div className='space-y-2'>
-        <Link href={`/dm/${session.dmToken}`} className='block'>
+        <Link href={`/dm/${session.dmToken}`} prefetch={false} className='block'>
           <Button
             id={`open-dm-dashboard-btn-${session.sessionId}`}
             size='sm'
@@ -90,7 +90,7 @@ export function SavedCampaigns({
   }))
 
   return (
-    <div id='saved-campaigns-column' className='saved-campaigns-column min-w-[280px]'>
+    <div id='saved-campaigns-column' className='saved-campaigns-column min-w-0'>
       <Accordion type='single' collapsible className='w-full'>
         <AccordionItem value='campaigns'>
           <AccordionTrigger className='text-left'>
@@ -107,7 +107,7 @@ export function SavedCampaigns({
               items={items}
               columns={3}
               inline
-              className='min-w-[280px]'
+              className='min-w-0'
             />
           </AccordionContent>
         </AccordionItem>

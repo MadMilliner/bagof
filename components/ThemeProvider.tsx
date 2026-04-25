@@ -122,19 +122,13 @@ export function ThemeToggle() {
 }
 
 export function ThemeSelect() {
-  const { themeSlug, mounted, setThemeSlug } = useTheme()
-
-  if (!mounted) {
-    return (
-      <div className="h-9 w-[140px] border-2 border-black dark:border-white bg-background [box-shadow:2px_2px_0px_0px_rgba(0,0,0,1)] dark:[box-shadow:2px_2px_0px_0px_rgba(255,255,255,1)]" />
-    )
-  }
+  const { themeSlug, setThemeSlug } = useTheme()
 
   const currentTheme = themes.find(t => t.slug === themeSlug) ?? themes[0]
 
   return (
     <Select value={themeSlug} onValueChange={setThemeSlug}>
-      <SelectTrigger className="w-[140px] h-9">
+      <SelectTrigger className="w-[100px] sm:w-[140px] h-9">
         <SelectValue>
           <span className="flex items-center gap-1.5">
             <span>{currentTheme.emoji}</span>

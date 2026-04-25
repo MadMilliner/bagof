@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/8bit/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { Badge } from '@/components/ui/8bit/badge'
@@ -10,7 +11,6 @@ import { ItemCard } from '@/components/inventory/ItemCard'
 import { AddItemForm } from '@/components/inventory/AddItemForm'
 import { ItemFilter, filterItems } from '@/components/inventory/ItemFilter'
 import { GoldPanel } from '@/components/gold/GoldPanel'
-import { ActivityLog } from '@/components/ActivityLog'
 import { ThemeSelect, ThemeToggle } from '@/components/ThemeProvider'
 import
 {
@@ -29,6 +29,12 @@ import type { Item, Member, Session, ItemType } from '@/types'
 import { useEffect } from 'react'
 import { saveSession } from '@/lib/savedSessions'
 import { BagOfLogo } from '@/components/BagOfLogo'
+
+const LoadingSpinner = dynamic(() => import('@/app/loading_spinner'))
+const ActivityLog = dynamic(
+  () => import('@/components/ActivityLog').then(mod => mod.ActivityLog),
+  { loading: () => <LoadingSpinner /> }
+)
 
 interface DMDashboardProps
 {
@@ -351,15 +357,15 @@ export function DMDashboard({
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <div id="dm-dashboard" className="dm-dashboard flex-1 bg-background p-4 max-w-5xl mx-auto">
-      <header id="dm-header" className="dm-header mb-6 pb-6">
-        <div id="dm-header-content" className="dm-header-content flex items-start justify-between gap-6">
-          <div id="dm-title-section" className="dm-title-section flex items-start gap-4 min-w-0 flex-1">
+    <div id="dm-dashboard" className="dm-dashboard flex-1 bg-background p-3 sm:p-4 max-w-5xl mx-auto overflow-x-hidden">
+      <header id="dm-header" className="dm-header mb-4 sm:mb-6 pb-4 sm:pb-6">
+        <div id="dm-header-content" className="dm-header-content flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-6">
+          <div id="dm-title-section" className="dm-title-section flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
             <span className="font-press-start text-2xl shrink-0"></span>
             <div id="dm-title-text-container" className="dm-title-text-container min-w-0">
               <BagOfLogo />
-              <h1 id="dm-role-heading" className="dm-role-heading font-press-start text-8bit-lg leading-tight mt-2">{session.dmRole}</h1>
-              <p id="dm-session-name" className="dm-session-name font-press-start text-8bit-sm text-muted-foreground mt-2 truncate">
+              <h1 id="dm-role-heading" className="dm-role-heading font-press-start text-8bit-lg leading-tight mt-1 sm:mt-2">{session.dmRole}</h1>
+              <p id="dm-session-name" className="dm-session-name font-press-start text-8bit-sm text-muted-foreground mt-1 sm:mt-2 truncate">
                   {isEditingName ? (
                     <div id="dm-name-edit-container" className="dm-name-edit-container flex items-center gap-2">
                       <input
@@ -382,7 +388,7 @@ export function DMDashboard({
             </div>
           </div>
             <div id="dm-action-buttons" className="dm-action-buttons flex flex-col gap-2 shrink-0">
-              <div id="dm-primary-actions" className="dm-primary-actions flex items-center gap-2">
+              <div id="dm-primary-actions" className="dm-primary-actions flex items-center gap-1.5 sm:gap-2">
                 <Sheet>
                   <SheetTrigger asChild>
                     <Button id="dm-manage-players-btn" className="dm-manage-players-btn" variant="outline" size="sm" title="Share player links">
@@ -496,7 +502,7 @@ export function DMDashboard({
                 onChange={handleImportFile}
                 className="hidden"
               />
-              <div id="dm-secondary-actions" className="dm-secondary-actions flex items-center gap-2">
+              <div id="dm-secondary-actions" className="dm-secondary-actions flex items-center gap-1.5 sm:gap-2">
                 <Button id="dm-refresh-btn" className='dm-refresh-btn refresh-data' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
                   {refreshing ? '⟳' : '↻'}
                 </Button>
@@ -680,7 +686,7 @@ function GiveMemberGold({
 
   return (
     <Card id={`give-gold-card-${member.id}`} className="give-gold-card">
-      <CardContent className="pt-3 pb-3 space-y-2">
+      <CardContent className="p-2 sm:p-3 space-y-2">
         <div id={`give-gold-header-${member.id}`} className="give-gold-header flex items-center justify-between">
           <span className="give-gold-member-name font-press-start text-8bit-sm font-bold">{member.name}</span>
           <span className="give-gold-member-balance font-press-start text-8bit-sm text-yellow-600 dark:text-yellow-400">{publicDisplay}</span>
@@ -693,20 +699,20 @@ function GiveMemberGold({
             <span className="font-press-start text-8bit-sm text-muted-foreground shrink-0">Wealth</span>
           </div>
         ) : (
-          <div className="give-gold-currency-inputs grid grid-cols-3 gap-2 sm:flex sm:gap-1 sm:items-center">
-            <div className="give-gold-gp-container flex items-center gap-1">
+          <div className="give-gold-currency-inputs grid grid-cols-3 gap-1 items-center min-w-0">
+            <div className="give-gold-gp-container flex items-center gap-0.5 min-w-0">
               <Input type="number" min={0} placeholder="0" value={gp}
-                onChange={e => setGp(e.target.value)} className="give-gold-gp-input w-full sm:w-20 text-center" />
+                onChange={e => setGp(e.target.value)} className="give-gold-gp-input flex-1 min-w-0 text-center" />
               <span className="font-press-start text-8bit-sm text-yellow-600 dark:text-yellow-400 shrink-0">gp</span>
             </div>
-            <div className="give-gold-sp-container flex items-center gap-1">
+            <div className="give-gold-sp-container flex items-center gap-0.5 min-w-0">
               <Input type="number" min={0} placeholder="0" value={sp}
-                onChange={e => setSp(e.target.value)} className="give-gold-sp-input w-full sm:w-20 text-center" />
+                onChange={e => setSp(e.target.value)} className="give-gold-sp-input flex-1 min-w-0 text-center" />
               <span className="font-press-start text-8bit-sm text-slate-400 shrink-0">sp</span>
             </div>
-            <div className="give-gold-cp-container flex items-center gap-1">
+            <div className="give-gold-cp-container flex items-center gap-0.5 min-w-0">
               <Input type="number" min={0} placeholder="0" value={cp}
-                onChange={e => setCp(e.target.value)} className="give-gold-cp-input w-full sm:w-20 text-center" />
+                onChange={e => setCp(e.target.value)} className="give-gold-cp-input flex-1 min-w-0 text-center" />
               <span className="font-press-start text-8bit-sm text-orange-600 dark:text-orange-400 shrink-0">cp</span>
             </div>
           </div>

@@ -73,7 +73,7 @@ export function AddItemForm({
       </div>
 
       {expanded && (
-        <div id="add-item-form-expanded" className="add-item-form-expanded border-2 border-black dark:border-white p-3 space-y-3 [box-shadow:4px_4px_0px_0px_rgba(0,0,0,1)] dark:[box-shadow:4px_4px_0px_0px_rgba(255,255,255,1)]">
+        <div id="add-item-form-expanded" className="add-item-form-expanded border-2 border-black dark:border-white p-2 sm:p-3 space-y-3 [box-shadow:4px_4px_0px_0px_rgba(0,0,0,1)] dark:[box-shadow:4px_4px_0px_0px_rgba(255,255,255,1)] overflow-x-hidden">
           <Textarea
             id="item-description-input"
             className="item-description-input"
@@ -90,7 +90,7 @@ export function AddItemForm({
             <div id="add-item-type-container" className="add-item-type-container flex items-center gap-2">
               <span id="add-item-type-label" className="add-item-type-label font-press-start text-8bit-sm">Type</span>
               <Select value={type} onValueChange={v => setType(v as ItemType)}>
-                <SelectTrigger id="item-type-select" className="w-32">
+                <SelectTrigger id="item-type-select" className="w-28 sm:w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -105,7 +105,7 @@ export function AddItemForm({
               <span id="add-item-quantity-label" className="add-item-quantity-label font-press-start text-8bit-sm">Qty</span>
               <Input
                 id="item-quantity-input"
-                className="item-quantity-input w-16"
+                className="item-quantity-input w-14 sm:w-16"
                 type="number"
                 min={1}
                 value={quantity}

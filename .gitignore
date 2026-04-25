@@ -24,3 +24,4 @@ drizzle/
 npm-debug.log*
 .vercel
 .env*.local
+tsconfig.tsbuildinfo

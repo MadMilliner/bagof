@@ -1,18 +1,24 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/8bit/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { ItemCard } from '@/components/inventory/ItemCard'
 import { AddItemForm } from '@/components/inventory/AddItemForm'
 import { ItemFilter, filterItems } from '@/components/inventory/ItemFilter'
 import { GoldPanel, CurrencyInput, formatCurrency } from '@/components/gold/GoldPanel'
-import { ActivityLog } from '@/components/ActivityLog'
 import { ThemeSelect, ThemeToggle } from '@/components/ThemeProvider'
 import { Button } from '@/components/ui/8bit/button'
 import type { Item, Member, Session, ItemType } from '@/types'
 import { savePlayerLink } from '@/lib/savedSessions'
 import { BagOfLogo } from '@/components/BagOfLogo'
+
+const LoadingSpinner = dynamic(() => import('@/app/loading_spinner'))
+const ActivityLog = dynamic(
+  () => import('@/components/ActivityLog').then(mod => mod.ActivityLog),
+  { loading: () => <LoadingSpinner /> }
+)
 
 interface OtherMember
 {
@@ -326,15 +332,15 @@ export function PlayerDashboard({
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <div id="player-dashboard" className="player-dashboard flex-1 bg-background p-4 max-w-5xl mx-auto">
-      <header id="player-header" className="player-header mb-6 pb-6">
-        <div id="player-header-content" className="player-header-content flex items-start justify-between gap-6">
-          <div id="player-title-section" className="player-title-section flex items-start gap-4 min-w-0 flex-1">
+    <div id="player-dashboard" className="player-dashboard flex-1 bg-background p-3 sm:p-4 max-w-5xl mx-auto overflow-x-hidden">
+      <header id="player-header" className="player-header mb-4 sm:mb-6 pb-4 sm:pb-6">
+        <div id="player-header-content" className="player-header-content flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-6">
+          <div id="player-title-section" className="player-title-section flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
             <span className="font-press-start text-2xl shrink-0"></span>
             <div id="player-title-text-container" className="player-title-text-container min-w-0">
               <BagOfLogo />
               {isEditingName ? (
-                <div id="player-name-edit-container" className="player-name-edit-container flex items-center gap-2 mt-2 min-w-0">
+                <div id="player-name-edit-container" className="player-name-edit-container flex items-center gap-2 mt-1 sm:mt-2 min-w-0">
                   <input
                     autoFocus
                     id="player-name-input"
@@ -348,17 +354,17 @@ export function PlayerDashboard({
               ) : (
                 <h1
                   id="player-name-heading"
-                  className="player-name-heading font-press-start text-lg leading-tight mt-2 cursor-pointer hover:text-muted-foreground transition-colors flex items-center gap-2 min-w-0"
+                  className="player-name-heading font-press-start text-base sm:text-lg leading-tight mt-1 sm:mt-2 cursor-pointer hover:text-muted-foreground transition-colors flex items-center gap-2 min-w-0"
                   onClick={() => setIsEditingName(true)}
                 >
                   <span id="player-character-name" className="player-character-name truncate">{memberName}</span>
                   <span id="player-edit-hint" className="player-edit-hint text-8bit-sm text-muted-foreground opacity-50 shrink-0">edit</span>
                 </h1>
               )}
-              <p id="player-session-name" className="player-session-name font-press-start text-8bit-sm text-muted-foreground mt-2 truncate">{session.name}</p>
+              <p id="player-session-name" className="player-session-name font-press-start text-8bit-sm text-muted-foreground mt-1 sm:mt-2 truncate">{session.name}</p>
             </div>
           </div>
-          <div id="player-action-buttons" className="player-action-buttons flex items-center gap-2 shrink-0">
+          <div id="player-action-buttons" className="player-action-buttons flex items-center gap-1.5 sm:gap-2 self-end sm:self-auto shrink-0">
             <Button id="player-refresh-btn" className="player-refresh-btn refresh-data" variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
               {refreshing ? '⟳' : '↻'}
             </Button>
@@ -423,7 +429,7 @@ export function PlayerDashboard({
             currencyType={session.currencyType}
             titleOverride={session.currencyType === 'wealth' ? "Party Bag Wealth" : "Party Bag Gold"}
           />
-          <div id="player-transfer-section" className="player-transfer-section border-2 border-black dark:border-white p-3 space-y-4 bg-card mt-4 mb-4">
+          <div id="player-transfer-section" className="player-transfer-section border-2 border-black dark:border-white p-2 sm:p-3 space-y-4 bg-card mt-4 mb-4 overflow-x-hidden">
             <p id="player-transfer-label" className="player-transfer-label font-press-start text-8bit-sm text-muted-foreground border-b-2 border-black dark:border-white pb-2">
               Transfer Currency
             </p>

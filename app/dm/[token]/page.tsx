@@ -1,19 +1,22 @@
 import { notFound } from 'next/navigation'
 import { after } from 'next/server'
+import { cache } from 'react'
 import { getDMSession, getAllSessionItems, getSessionMembers, touchSessionAccess } from '@/db/queries'
 import { DMDashboard } from '@/components/DMDashboard'
 import { Metadata } from 'next'
 
+const getDMSessionCached = cache(getDMSession)
+
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params
-  const session = await getDMSession(token)
+  const session = await getDMSessionCached(token)
   if (!session) return { title: 'Not Found' }
   return { title: `DM: ${session.name}` }
 }
 
 export default async function DMPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const session = await getDMSession(token)
+  const session = await getDMSessionCached(token)
   if (!session) notFound()
 
   const [items, members] = await Promise.all([

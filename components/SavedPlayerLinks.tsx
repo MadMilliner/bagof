@@ -44,14 +44,14 @@ export function SavedPlayerLinks({
     badge: link.sessionName,
     children: (
       <div className='space-y-2'>
-        <Link href={`/p/${link.memberToken}`} className='block'>
+        <Link href={`/p/${link.memberToken}`} prefetch={false} className='block'>
           <Button
             id={`open-player-dashboard-btn-${link.memberId}`}
             size='sm'
             variant='secondary'
             className='w-full h-fit whitespace-normal text-center'
           >
-            Open Character Sheet
+            Open Inventory
           </Button>
         </Link>
         <div className='flex gap-2'>
@@ -91,7 +91,7 @@ export function SavedPlayerLinks({
   }))
 
   return (
-    <div id='saved-characters-column' className='saved-characters-column min-w-[280px]'>
+    <div id='saved-characters-column' className='saved-characters-column min-w-0'>
       <Accordion type='single' collapsible className='w-full'>
         <AccordionItem value='characters'>
           <AccordionTrigger className='text-left'>
@@ -108,7 +108,7 @@ export function SavedPlayerLinks({
               items={items}
               columns={3}
               inline
-              className='min-w-[280px]'
+              className='min-w-0'
             />
           </AccordionContent>
         </AccordionItem>

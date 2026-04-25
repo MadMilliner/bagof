@@ -1,8 +1,11 @@
 import './globals.css'
 import type { Metadata } from 'next'
-import { Press_Start_2P } from 'next/font/google'
+import { Press_Start_2P, Geist } from 'next/font/google'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/8bit/card'
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const pressStart = Press_Start_2P({
   weight: '400',
@@ -21,7 +24,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode })
 {
   return (
-    <html lang="en" className={pressStart.variable} suppressHydrationWarning>
+    <html lang="en" className={cn("font-sans", geist.variable, pressStart.variable)} suppressHydrationWarning>
       <body className="font-sans antialiased flex flex-col min-h-[100dvh]">
         <script
           dangerouslySetInnerHTML={{
@@ -51,7 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode })
           }}
         />
         <ThemeProvider>{children}</ThemeProvider>
-        <div id="footer" className='ps-10 pe-10 pt-4 pb-4'>
+        <div id="footer" className='ps-4 pe-4 sm:ps-10 sm:pe-10 pt-4 pb-4'>
           <Card>
             <CardHeader>
               <CardTitle></CardTitle>

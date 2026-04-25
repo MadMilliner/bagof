@@ -55,7 +55,8 @@ export function CreateSessionForm()
     const paths = new Set<string>()
     sessions.forEach(session => paths.add(`/dm/${session.dmToken}`))
     playerLinks.forEach(link => paths.add(`/p/${link.memberToken}`))
-    const queue = Array.from(paths)
+    // Keep home responsive: prefetch only a few recent links.
+    const queue = Array.from(paths).slice(0, 4)
     let cancelled = false
     let timeoutId: ReturnType<typeof setTimeout> | null = null
 
@@ -66,14 +67,16 @@ export function CreateSessionForm()
 
       // Prefetch links gradually to avoid flooding route/data requests.
       router.prefetch(nextPath)
-      timeoutId = setTimeout(schedule, 200)
+      timeoutId = setTimeout(schedule, 300)
     }
 
     if ('requestIdleCallback' in window) {
       (window as Window & { requestIdleCallback: (cb: IdleRequestCallback) => number })
-        .requestIdleCallback(() => schedule())
+        .requestIdleCallback(() => {
+          timeoutId = setTimeout(schedule, 750)
+        })
     } else {
-      timeoutId = setTimeout(schedule, 0)
+      timeoutId = setTimeout(schedule, 750)
     }
 
     return () => {

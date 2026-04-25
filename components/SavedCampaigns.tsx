@@ -21,6 +21,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/8bit/alert-dialog'
 import type { SavedSession } from '@/lib/savedSessions'
+import { LuBackpack, LuCheck, LuLink, LuX } from 'react-icons/lu'
 
 interface SavedCampaignsProps {
   sessions: SavedSession[]
@@ -38,7 +39,7 @@ export function SavedCampaigns({
   if (sessions.length === 0) return null
 
   const items = sessions.map(session => ({
-    icon: '🎒',
+    icon: <LuBackpack className="inline-block h-6 w-6" aria-hidden="true" />,
     title: session.sessionName,
     description: `Saved ${new Date(session.savedAt).toLocaleDateString()}`,
     badge: session.dmRole,
@@ -61,12 +62,22 @@ export function SavedCampaigns({
             className='flex-1'
             onClick={() => onCopy(session.dmToken, session.sessionId)}
           >
-            {copiedSessionId === session.sessionId ? '✓ Copied!' : 'Copy Link'}
+            {copiedSessionId === session.sessionId ? (
+              <span className="inline-flex items-center gap-1">
+                <LuCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                Copied!
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1">
+                <LuLink className="h-3.5 w-3.5" aria-hidden="true" />
+                Copy Link
+              </span>
+            )}
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size='sm' variant='destructive'>
-                ✕
+              <Button size='sm' variant='destructive' aria-label={`Remove ${session.sessionName}`}>
+                <LuX className="h-4 w-4" aria-hidden="true" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -95,7 +106,7 @@ export function SavedCampaigns({
         <AccordionItem value='campaigns'>
           <AccordionTrigger className='text-left'>
             <div className='flex items-center gap-2'>
-              <span>🎒</span>
+              <LuBackpack className="h-4 w-4" aria-hidden="true" />
               <span className='font-press-start text-xs'>Your campaigns ({sessions.length})</span>
             </div>
           </AccordionTrigger>

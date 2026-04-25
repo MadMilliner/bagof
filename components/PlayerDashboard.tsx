@@ -10,6 +10,7 @@ import { ItemFilter, filterItems } from '@/components/inventory/ItemFilter'
 import { GoldPanel, CurrencyInput, formatCurrency } from '@/components/gold/GoldPanel'
 import { ThemeSelect, ThemeToggle } from '@/components/ThemeProvider'
 import { Button } from '@/components/ui/8bit/button'
+import { LuRefreshCw, LuSwords } from 'react-icons/lu'
 import type { Item, Member, Session, ItemType } from '@/types'
 import { savePlayerLink } from '@/lib/savedSessions'
 import { BagOfLogo } from '@/components/BagOfLogo'
@@ -366,7 +367,7 @@ export function PlayerDashboard({
           </div>
           <div id="player-action-buttons" className="player-action-buttons flex items-center gap-1.5 sm:gap-2 self-end sm:self-auto shrink-0">
             <Button id="player-refresh-btn" className="player-refresh-btn refresh-data" variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
-              {refreshing ? '⟳' : '↻'}
+              <LuRefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
             </Button>
             <ThemeSelect />
             <ThemeToggle />
@@ -489,7 +490,10 @@ export function PlayerDashboard({
                 <Card key={m.id} id={`player-other-member-card-${m.id}`} className="player-other-member-card">
                   <CardHeader className="pb-2">
                     <CardTitle id={`player-other-member-title-${m.id}`} className="player-other-member-title text-xs flex items-center justify-between">
-                      <span>⚔️ {m.name}</span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <LuSwords className="h-4 w-4" aria-hidden="true" />
+                        {m.name}
+                      </span>
                       <span className="text-yellow-600 dark:text-yellow-400">
                         {formatCurrency(m.publicGold, session.currencyType)}
                       </span>

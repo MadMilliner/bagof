@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/c
 import { Button } from '@/components/ui/8bit/button'
 import { Input } from '@/components/ui/8bit/input'
 import { GiTwoCoins } from "react-icons/gi";
+import { LuLock } from 'react-icons/lu'
 
 
 // ── Currency helpers ──────────────────────────────────────────
@@ -221,7 +222,10 @@ export function GoldPanel({
           </div>
           {showPrivate && (
             <div id={id ? `${id}-private-balance` : undefined} className="gold-panel-private-balance flex-1 min-w-0">
-              <p className="gold-panel-private-label font-press-start text-8bit-sm text-muted-foreground mb-1">🔒 {currencyType === 'wealth' ? 'Private Wealth' : 'Private Gold'}</p>
+              <p className="gold-panel-private-label font-press-start text-8bit-sm text-muted-foreground mb-1 inline-flex items-center gap-1">
+                <LuLock className="h-3.5 w-3.5" aria-hidden="true" />
+                {currencyType === 'wealth' ? 'Private Wealth' : 'Private Gold'}
+              </p>
               <p className="gold-panel-private-amount font-press-start text-base leading-tight">
                 {formatCurrency(privateGold, currencyType)}
               </p>

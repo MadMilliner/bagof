@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/8bit/card'
 import { Button } from '@/components/ui/8bit/button'
 import { FaDiceD20 } from "react-icons/fa6";
+import { LuX } from 'react-icons/lu'
 
 interface DiceRollerProps {
   notation: string
@@ -56,7 +57,9 @@ export function DiceRollerPopup({ notation, onClose }: DiceRollerProps) {
       <Card className="w-full max-w-sm shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
         <CardHeader className="flex flex-row items-center justify-between pb-2 border-b-2 border-black dark:border-white">
           <CardTitle className="text-sm"><FaDiceD20/> Rolling {notation}</CardTitle>
-          <Button id="dice-roller-close-btn" variant="outline" size="sm" onClick={onClose} className="h-6 px-2 text-[10px]">✕</Button>
+          <Button id="dice-roller-close-btn" variant="outline" size="sm" onClick={onClose} className="h-6 px-2 text-[10px]" aria-label="Close dice roller">
+            <LuX className="h-4 w-4" aria-hidden="true" />
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4 pt-4 text-center">
           <div className="font-press-start text-4xl text-yellow-600 dark:text-yellow-400 py-4">

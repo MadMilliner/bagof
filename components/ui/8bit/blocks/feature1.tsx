@@ -2,7 +2,7 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 interface FeatureItem {
-  icon: string
+  icon: React.ReactNode
   title: string
   description: string
   badge?: string

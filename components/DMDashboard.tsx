@@ -25,6 +25,9 @@ import { LuLink } from "react-icons/lu"
 import { LuPencil } from "react-icons/lu"
 import { LuDownload } from "react-icons/lu"
 import { LuUpload } from "react-icons/lu"
+import { LuCheck } from "react-icons/lu"
+import { LuRefreshCw } from "react-icons/lu"
+import { LuSwords } from "react-icons/lu"
 import type { Item, Member, Session, ItemType } from '@/types'
 import { useEffect } from 'react'
 import { saveSession } from '@/lib/savedSessions'
@@ -414,8 +417,9 @@ export function DMDashboard({
                     >
                       ×
                     </button>
-                    <p className="font-press-start text-8bit-sm text-green-800 dark:text-green-200">
-                      ✅ Imported!
+                    <p className="font-press-start text-8bit-sm text-green-800 dark:text-green-200 inline-flex items-center gap-1">
+                      <LuCheck className="h-4 w-4" aria-hidden="true" />
+                      Imported!
                     </p>
                     <p className="font-press-start text-8bit-xs text-green-700 dark:text-green-300 mt-1">
                       {importResult.items} items, {importResult.members} members, {importResult.gold} gold changes
@@ -449,7 +453,10 @@ export function DMDashboard({
                 <div id="members-list-section" className="members-list-section mt-6 space-y-6 overflow-y-auto max-h-[70vh] pr-2 pb-4">
                   {members.map(m => (
                     <div key={m.id} id={`dm-member-${m.id}`} className="dm-member space-y-2 min-h-0">
-                      <p className="font-press-start text-8bit-sm font-bold text-foreground">⚔️ {m.name}</p>
+                      <p className="font-press-start text-8bit-sm font-bold text-foreground inline-flex items-center gap-1.5">
+                        <LuSwords className="h-4 w-4" aria-hidden="true" />
+                        {m.name}
+                      </p>
                         <Input
                           readOnly
                           value={origin ? `${origin}/p/${m.token}` : `/p/${m.token}`}
@@ -504,7 +511,7 @@ export function DMDashboard({
               />
               <div id="dm-secondary-actions" className="dm-secondary-actions flex items-center gap-1.5 sm:gap-2">
                 <Button id="dm-refresh-btn" className='dm-refresh-btn refresh-data' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
-                  {refreshing ? '⟳' : '↻'}
+                  <LuRefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
                 </Button>
                 <Button id="dm-export-btn" className="dm-export-btn" variant="outline" size="sm" onClick={handleExport} title="Export session data">
                   <LuDownload className="h-4 w-4 sm:mr-2" />
@@ -580,7 +587,10 @@ export function DMDashboard({
               <Card key={m.id} id={`dm-member-card-${m.id}`} className="dm-member-card">
                 <CardHeader className="pb-2">
                   <CardTitle id={`dm-member-title-${m.id}`} className="dm-member-title text-xs flex items-center justify-between">
-                    <span>⚔️ {m.name}</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <LuSwords className="h-4 w-4" aria-hidden="true" />
+                      {m.name}
+                    </span>
                     <span className={session.currencyType === 'wealth' ? "text-muted-foreground" : "text-yellow-600 dark:text-yellow-400"}>
                       {session.currencyType === 'wealth' ? `${m.publicGold} W` : `${Math.floor(m.publicGold / 100)}gp`}
                     </span>

@@ -25,6 +25,7 @@ import { GiStandingPotion } from "react-icons/gi";
 import { GiRopeCoil } from "react-icons/gi";
 import { FaDiceD20 } from 'react-icons/fa6'
 import { LuCopy } from 'react-icons/lu'
+import { LuLock } from 'react-icons/lu'
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/
 const DICE_REGEX = /\b(\d+d\d+(?:[+-]\d+)?)\b/i
@@ -147,7 +148,14 @@ export function ItemCard({
 
               <div className="item-card-badges flex flex-wrap gap-1 mb-2">
                 <Badge id={`item-card-type-badge-${item.id}`} variant={TYPE_VARIANT[item.type]}>{item.type}</Badge>
-                {item.private && <Badge id={`item-card-private-badge-${item.id}`} variant="outline">🔒 Private</Badge>}
+                {item.private && (
+                  <Badge id={`item-card-private-badge-${item.id}`} variant="outline">
+                    <span className="inline-flex items-center gap-1">
+                      <LuLock className="h-3 w-3" aria-hidden="true" />
+                      Private
+                    </span>
+                  </Badge>
+                )}
                 {isInPool && <Badge id={`item-card-pool-badge-${item.id}`} variant="secondary">Party Bag</Badge>}
               </div>
 

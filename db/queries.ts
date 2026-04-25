@@ -151,6 +151,97 @@ export async function getSessionMembers(sessionId: string): Promise<Member[]> {
   return rows.map(mapMember)
 }
 
+export async function getAllSessionsWithMembers(): Promise<Array<{ session: Session; members: Member[] }>> {
+  const [sessionsRes, membersRes] = await Promise.all([
+    sql`SELECT * FROM sessions ORDER BY created_at DESC`,
+    sql`SELECT * FROM members ORDER BY created_at ASC`,
+  ])
+
+  const membersBySessionId = new Map<string, Member[]>()
+  for (const row of membersRes.rows) {
+    const member = mapMember(row)
+    const existing = membersBySessionId.get(member.sessionId)
+    if (existing) {
+      existing.push(member)
+    } else {
+      membersBySessionId.set(member.sessionId, [member])
+    }
+  }
+
+  return sessionsRes.rows.map((row) => {
+    const session = mapSession(row)
+    return {
+      session,
+      members: membersBySessionId.get(session.id) ?? [],
+    }
+  })
+}
+
+export const INTERNAL_LINKS_PAGE_SIZE = 10
+
+/** Paginated sessions (newest first) with members for each session on this page only. */
+export async function getSessionsWithMembersPage(
+  page: number,
+  pageSize: number = INTERNAL_LINKS_PAGE_SIZE
+): Promise<{
+  rows: Array<{ session: Session; members: Member[] }>
+  total: number
+  page: number
+  pageSize: number
+}> {
+  const raw = Number.isFinite(page) ? Math.floor(page) : 1
+  const requestedPage = raw >= 1 ? raw : 1
+
+  const { rows: countRows } = await sql`SELECT COUNT(*)::int AS n FROM sessions`
+  const total = countRows[0]?.n ?? 0
+  const totalPages = total === 0 ? 1 : Math.ceil(total / pageSize)
+  const effectivePage = Math.min(requestedPage, totalPages)
+  const offset = (effectivePage - 1) * pageSize
+
+  const { rows: pageSessionRows } = await sql`
+    SELECT * FROM sessions
+    ORDER BY created_at DESC
+    LIMIT ${pageSize}
+    OFFSET ${offset}
+  `
+
+  if (pageSessionRows.length === 0) {
+    return { rows: [], total, page: effectivePage, pageSize }
+  }
+
+  const { rows: memberRows } = await sql`
+    SELECT m.* FROM members m
+    WHERE m.session_id IN (
+      SELECT s.id FROM sessions s
+      ORDER BY s.created_at DESC
+      LIMIT ${pageSize}
+      OFFSET ${offset}
+    )
+    ORDER BY m.created_at ASC
+  `
+
+  const membersBySessionId = new Map<string, Member[]>()
+  for (const row of memberRows) {
+    const member = mapMember(row)
+    const existing = membersBySessionId.get(member.sessionId)
+    if (existing) {
+      existing.push(member)
+    } else {
+      membersBySessionId.set(member.sessionId, [member])
+    }
+  }
+
+  const rows = pageSessionRows.map((row) => {
+    const session = mapSession(row)
+    return {
+      session,
+      members: membersBySessionId.get(session.id) ?? [],
+    }
+  })
+
+  return { rows, total, page: effectivePage, pageSize }
+}
+
 // ── Session creation ──────────────────────────────────────────
 
 export async function createSession(
@@ -461,6 +552,20 @@ export async function addMember(sessionId: string, name: string): Promise<Member
 export async function updateMemberName(memberId: string, name: string): Promise<boolean> {
   const { rowCount } = await sql`
     UPDATE members SET name = ${name} WHERE id = ${memberId}
+  `
+  return (rowCount ?? 0) > 0
+}
+
+export async function deleteSessionById(sessionId: string): Promise<boolean> {
+  const { rowCount } = await sql`
+    DELETE FROM sessions WHERE id = ${sessionId}
+  `
+  return (rowCount ?? 0) > 0
+}
+
+export async function deleteMemberById(memberId: string): Promise<boolean> {
+  const { rowCount } = await sql`
+    DELETE FROM members WHERE id = ${memberId}
   `
   return (rowCount ?? 0) > 0
 }

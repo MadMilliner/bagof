@@ -8,10 +8,9 @@ interface LinkActionsProps {
   url: string
   type: 'session' | 'member'
   id: string
-  accessKey?: string
 }
 
-export function LinkActions({ url, type, id, accessKey }: LinkActionsProps) {
+export function LinkActions({ url, type, id }: LinkActionsProps) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -33,7 +32,7 @@ export function LinkActions({ url, type, id, accessKey }: LinkActionsProps) {
       const res = await fetch('/api/internal-links', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, id, key: accessKey }),
+        body: JSON.stringify({ type, id }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))

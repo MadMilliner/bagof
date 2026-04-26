@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { headers } from 'next/headers'
-import { notFound } from 'next/navigation'
+import { cookies, headers } from 'next/headers'
 import { getSessionsWithMembersPage } from '../../db/queries'
 import { LinkActions } from './LinkActions'
 import { BagOfLogo } from '@/components/BagOfLogo'
 import { InternalLinksPagination } from './internal-links-pagination'
+import { InternalLinksPasswordGate } from './PasswordGate'
+import { InternalLinksLogoutButton } from './logout-button'
 import { SessionListSkeleton } from './session-list-skeleton'
 
 export const metadata: Metadata = {
@@ -29,14 +30,27 @@ function formatCreatedAt(value: string) {
 export default async function InternalLinksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ key?: string; page?: string }>
+  searchParams: Promise<{ page?: string }>
 }) {
   const params = await searchParams
-  const requiredKey = process.env.INTERNAL_LINKS_KEY
+  const requiredPassword = process.env.INTERNAL_PW
+  const cookieStore = await cookies()
+  const accessCookie = cookieStore.get('internal_links_pw')?.value
 
-  // Optional gate: set INTERNAL_LINKS_KEY in env and visit /_links?key=YOUR_KEY (&page=2 for pagination)
-  if (requiredKey && params.key !== requiredKey) {
-    notFound()
+  // Gate access via password cookie, so URLs/requests do not carry the password.
+  if (requiredPassword && accessCookie !== requiredPassword) {
+    return (
+      <main className="mx-auto w-full max-w-md p-4 sm:p-6 space-y-6">
+        <header className="space-y-2">
+          <BagOfLogo />
+          <h1 className="font-press-start text-sm sm:text-base">Internal Session Links</h1>
+          <p className="font-press-start text-8bit-sm text-muted-foreground">
+            Enter password to access this page.
+          </p>
+        </header>
+        <InternalLinksPasswordGate />
+      </main>
+    )
   }
 
   const rawPage = parseInt(params.page ?? '1', 10)
@@ -53,13 +67,13 @@ export default async function InternalLinksPage({
       </header>
 
       <Suspense fallback={<SessionListSkeleton rows={3} />}>
-        <SessionsBody accessKey={params.key} page={page} />
+        <SessionsBody page={page} />
       </Suspense>
     </main>
   )
 }
 
-async function SessionsBody({ accessKey, page }: { accessKey?: string; page: number }) {
+async function SessionsBody({ page }: { page: number }) {
   const [h, { rows: sessions, total, page: effectivePage, pageSize }] = await Promise.all([
     headers(),
     getSessionsWithMembersPage(page),
@@ -92,7 +106,6 @@ async function SessionsBody({ accessKey, page }: { accessKey?: string; page: num
                 url={`${origin}/dm/${session.dmToken}`}
                 type="session"
                 id={session.id}
-                accessKey={accessKey}
               />
             </div>
           </div>
@@ -117,7 +130,6 @@ async function SessionsBody({ accessKey, page }: { accessKey?: string; page: num
                       url={`${origin}/p/${member.token}`}
                       type="member"
                       id={member.id}
-                      accessKey={accessKey}
                     />
                   </li>
                 ))}
@@ -131,8 +143,8 @@ async function SessionsBody({ accessKey, page }: { accessKey?: string; page: num
         page={effectivePage}
         total={total}
         pageSize={pageSize}
-        accessKey={accessKey}
       />
+      <InternalLinksLogoutButton />
     </div>
   )
 }

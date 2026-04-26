@@ -6,14 +6,14 @@ export async function DELETE(req: NextRequest) {
     const body = await req.json()
     const type = body?.type as 'session' | 'member' | undefined
     const id = body?.id as string | undefined
-    const key = body?.key as string | undefined
-    const requiredKey = process.env.INTERNAL_LINKS_KEY
+    const requiredPassword = process.env.INTERNAL_PW
+    const accessCookie = req.cookies.get('internal_links_pw')?.value
 
     if (!type || !id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    if (requiredKey && key !== requiredKey) {
+    if (requiredPassword && accessCookie !== requiredPassword) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

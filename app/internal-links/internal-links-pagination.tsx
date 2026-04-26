@@ -3,9 +3,8 @@ import { Button } from '@/components/ui/8bit/button'
 
 const BASE_PATH = '/_links'
 
-function buildHref(page: number, accessKey?: string) {
+function buildHref(page: number) {
   const sp = new URLSearchParams()
-  if (accessKey) sp.set('key', accessKey)
   if (page > 1) sp.set('page', String(page))
   const q = sp.toString()
   return q ? `${BASE_PATH}?${q}` : BASE_PATH
@@ -15,12 +14,10 @@ export function InternalLinksPagination({
   page,
   total,
   pageSize,
-  accessKey,
 }: {
   page: number
   total: number
   pageSize: number
-  accessKey?: string
 }) {
   if (total === 0) return null
 
@@ -41,7 +38,7 @@ export function InternalLinksPagination({
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm" disabled={page <= 1} asChild={page > 1}>
           {page > 1 ? (
-            <Link href={buildHref(page - 1, accessKey)} prefetch={false}>
+            <Link href={buildHref(page - 1)} prefetch={false}>
               Previous
             </Link>
           ) : (
@@ -50,7 +47,7 @@ export function InternalLinksPagination({
         </Button>
         <Button variant="outline" size="sm" disabled={page >= totalPages} asChild={page < totalPages}>
           {page < totalPages ? (
-            <Link href={buildHref(page + 1, accessKey)} prefetch={false}>
+            <Link href={buildHref(page + 1)} prefetch={false}>
               Next
             </Link>
           ) : (

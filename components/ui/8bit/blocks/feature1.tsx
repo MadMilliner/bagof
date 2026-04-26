@@ -13,7 +13,7 @@ interface Feature1Props {
   title?: string
   description?: string
   items: FeatureItem[]
-  columns?: 3 | 6 | 9
+  columns?: 2 | 3 | 6 | 9
   className?: string
   /** When true, removes section wrapper and container padding for embedding in smaller contexts */
   inline?: boolean
@@ -29,6 +29,7 @@ export function Feature1({
 }: Feature1Props) {
   const gridClass = cn(
     'grid gap-4',
+    columns === 2 && 'grid-cols-1 md:grid-cols-2',
     columns === 3 && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
     columns === 6 && 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6',
     columns === 9 && 'grid-cols-3 md:grid-cols-4 lg:grid-cols-9'

@@ -49,7 +49,7 @@ export function SavedCampaigns({
           <Button
             id={`open-dm-dashboard-btn-${session.sessionId}`}
             size='sm'
-            className='w-full h-fit whitespace-normal text-center'
+            className='w-full h-auto min-h-9 py-2 leading-relaxed whitespace-normal text-center'
           >
             Open {session.dmRole === 'Dungeon Master' ? 'DM' : session.dmRole === 'Game Master' ? 'GM' : session.dmRole} Dashboard
           </Button>
@@ -59,7 +59,7 @@ export function SavedCampaigns({
             id={`copy-dm-link-btn-${session.sessionId}`}
             size='sm'
             variant='outline'
-            className='flex-1'
+            className='w-full min-w-0'
             onClick={() => onCopy(session.dmToken, session.sessionId)}
           >
             {copiedSessionId === session.sessionId ? (
@@ -76,7 +76,7 @@ export function SavedCampaigns({
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size='sm' variant='destructive' aria-label={`Remove ${session.sessionName}`}>
+              <Button size='icon' variant='destructive' className='shrink-0' aria-label={`Remove ${session.sessionName}`}>
                 <LuX className="h-4 w-4" aria-hidden="true" />
               </Button>
             </AlertDialogTrigger>
@@ -116,7 +116,7 @@ export function SavedCampaigns({
             </p>
             <Feature1
               items={items}
-              columns={3}
+              columns={2}
               inline
               className='min-w-0'
             />

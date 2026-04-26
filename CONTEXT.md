@@ -13,7 +13,7 @@
 
 | Layer | Choice |
 |---|---|
-| Framework | Next.js 15 (App Router) |
+| Framework | Next.js 16 (App Router) |
 | Database | Vercel Postgres (`@vercel/postgres`) — raw SQL, no ORM |
 | UI Components | 8bitcn/ui (shadcn-compatible 8-bit styled components, inlined) |
 | Font | Press Start 2P (Google Fonts) |
@@ -22,7 +22,7 @@
 | Language | TypeScript (strict mode) |
 | Package Manager | pnpm |
 
-> ⚠️ **Note:** The README was updated to reflect the current stack (Vercel Postgres, Next.js 15, pnpm).
+> ⚠️ **Note:** The README and runtime now reflect Next.js 16 + Vercel Postgres + pnpm.
 
 ---
 
@@ -37,6 +37,10 @@
     /members/route.ts       ← POST: add member; PATCH: rename member
     /refresh/route.ts       ← GET: dashboard data refresh (player + DM polling)
     /activity/route.ts      ← GET: session activity log
+    /internal-links/route.ts ← DELETE: remove session/member from hidden internal links tool (cookie-gated)
+    /internal-links/auth/route.ts ← POST/DELETE: internal links password login/logout (sets/clears httpOnly cookie)
+  /internal-links/page.tsx  ← Internal admin utility: DM/player links list, pagination, copy/delete, created date
+  /internal-links/loading.tsx ← Route-level loading UI for internal links page
   /dm/[token]/page.tsx      ← DM dashboard (server component → client)
   /p/[token]/page.tsx       ← Player dashboard (server component → client)
   page.tsx                  ← Home page: session creation form
@@ -170,6 +174,15 @@ Dashboard data refresh endpoint for polling. Accepts `token` and `role` (player/
 ### GET `/api/activity`
 Session activity log. Accepts `token` and `role` (player/dm) query params. Returns the 50 most recent `ActivityEntry` records for the session. Used by the ActivityLog component on both dashboards.
 
+### DELETE `/api/internal-links`
+Deletes either a full session (`type: 'session'`) or a single member (`type: 'member'`) from the internal links utility page. Protected by the internal-links auth cookie and `INTERNAL_PW` when configured.
+
+### POST `/api/internal-links/auth`
+Verifies password payload `{ pw }` against `INTERNAL_PW` and sets `internal_links_pw` httpOnly cookie on success.
+
+### DELETE `/api/internal-links/auth`
+Clears the `internal_links_pw` cookie (logout for internal links page).
+
 ### GET `/api/cleanup`
 Session cleanup endpoint, invoked daily by Vercel Cron. Deletes sessions matching **either** criterion:
 1. **Never-used within 31 days of creation** — session is >31 days old AND has no items, no activity_log entries (except `session_create`), and no members added after session creation. Catches sessions that were created but never actually played.
@@ -187,6 +200,13 @@ Protected by `CRON_SECRET` env var (Vercel Cron sends `Authorization: Bearer <CR
 - **Player:** `/p/:token` — each member has a unique `token`. Possession = that member's access.
 
 Tokens are UUIDs, never expire, and cannot be recovered if lost. Both client and server components pass the token in API request bodies (not headers).
+
+### Internal Links Utility Gate
+- Route: `/_links` (rewritten to `/internal-links` in `next.config.ts` because underscore-prefixed app folders are private in App Router).
+- Access is gated by `INTERNAL_PW` using an httpOnly cookie (`internal_links_pw`) set by `/api/internal-links/auth`.
+- Password is entered once in-page (not passed via URL params), pagination links stay clean, and destructive actions rely on cookie auth.
+- Includes a Logout button under pagination that clears the cookie and returns to password prompt.
+- `app/internal-links/page.tsx` is forced dynamic (`dynamic = 'force-dynamic'`, `revalidate = 0`) so env/cookie checks run per request in production.
 
 ---
 
@@ -215,7 +235,7 @@ Conversion helpers: `toCp()`, `fromCp()`, `formatCurrency()` in `GoldPanel.tsx`.
 - **`otherMembers` state:** PlayerDashboard tracks other members' data as state (not just initial props), so it updates on refresh/poll.
 - **Hydration guard:** Both `DMDashboard` and `PlayerDashboard` use a `mounted` state flag (`const [mounted, setMounted] = useState(false)` + early return `null`) to prevent hydration mismatches with theme-dependent rendering.
 - **Dynamic metadata:** Both `/dm/[token]` and `/p/[token]` pages use `generateMetadata()` for dynamic page titles based on session/member data.
-- **Next.js 15 async params:** Dynamic route pages use `params: Promise<{ token: string }>` (awaited before use), reflecting the Next.js 15 breaking change from synchronous params.
+- **Next.js 15+ async params:** Dynamic route pages use `params: Promise<{ token: string }>` (awaited before use), reflecting the App Router async params change from synchronous params.
 
 ### Component Style
 - All text uses `font-press-start` class (Press Start 2P font).
@@ -243,6 +263,8 @@ Conversion helpers: `toCp()`, `fromCp()`, `formatCurrency()` in `GoldPanel.tsx`.
 - **Item search/filter:** The `ItemFilter` component provides text search + type filtering on party pool tabs. The `filterItems()` helper is a pure function that filters by name/description match and type. Computed once per render via `const filteredPool = filterItems(...)` to avoid double computation.
 - **Responsive 8-bit typography:** CSS utility classes `text-8bit-lg`, `text-8bit-md`, `text-8bit-sm`, `text-8bit-xs` in `globals.css` scale up on mobile (`@media max-width: 640px`) for better readability. Used instead of raw `text-[10px]` / `text-[8px]` classes throughout components.
 - **Saved links (localStorage):** Both DM and player dashboard links are auto-saved to localStorage on every visit (`DMDashboard` → `saveSession()`, `PlayerDashboard` → `savePlayerLink()`). This ensures backward compatibility with sessions created before this feature existed, and keeps names/roles up-to-date on revisit (since `saveSession`/`savePlayerLink` deduplicate by replacing the existing entry). The home page (`CreateSessionForm`) displays two separate sections: **"Your campaigns"** (DM links, with destructive badge showing dmRole) and **"Your characters"** (player links, with ⚔️ prefix and secondary badge showing session name). Each card has an Open button, Copy Link, and Remove with confirmation dialog. DM sessions are keyed by `sessionId` in `bag-of-saved-sessions`; player links are keyed by `memberId` in `bag-of-saved-players`.
+- **Saved links UI refinements:** Saved campaigns/characters now use `react-icons` instead of emoji in controls, action rows use a wide `Copy Link` button + square icon remove button, cards render in a wider 2-column inline grid, and Open buttons have increased vertical padding for readability.
+- **Activity log icons:** Activity log action markers were migrated from emoji to `react-icons/lu` for consistent visual style and easier tuning.
 - **Exported pure functions:** `rollDice()` from `DiceRoller.tsx` and `formatDescription()` from `ItemCard.tsx` are exported (not just module-private) to enable unit testing. These are stable, side-effect-free functions.
 
 ### Item Quantity Handling
@@ -260,6 +282,7 @@ Conversion helpers: `toCp()`, `fromCp()`, `formatCurrency()` in `GoldPanel.tsx`.
 
 - **Local dev:** `pnpm dev` — requires Vercel Postgres connection.
 - **Required env vars:** `POSTGRES_URL` (validated at startup — app throws if missing). See `.env.example` for template. `CRON_SECRET` is required for the cleanup cron endpoint (set in Vercel Environment Variables). `POSTGRES_PRISMA_URL` and `POSTGRES_URL_NON_POOLING` are auto-configured when linked to a Vercel project.
+- **Internal links password (optional but recommended):** `INTERNAL_PW` enables password gate for `/_links`. Be careful with exact spelling; a missing leading character (e.g. `NTERNAL_PW`) silently disables the gate.
 - **Build:** `pnpm build` / `pnpm start`
 - **Lint:** `pnpm lint` (Next.js ESLint)
 - **Test:** `pnpm test` (Vitest) — 108 tests across 10 files
@@ -269,7 +292,7 @@ Conversion helpers: `toCp()`, `fromCp()`, `formatCurrency()` in `GoldPanel.tsx`.
 
 ## Known Discrepancies
 
-1. **README updated:** README now correctly documents Vercel Postgres + Next.js 15 + pnpm + `.env.example`. Previously it described SQLite/Drizzle/better-sqlite3 + Next.js 14.
+1. **README migration note:** README now correctly documents Vercel Postgres + Next.js 16 + pnpm + `.env.example`. Previously it described SQLite/Drizzle/better-sqlite3 + Next.js 14.
 2. **`dm_role` column:** Added via `ALTER TABLE IF NOT EXISTS` in migration, not in original `CREATE TABLE` — indicates iterative schema development.
 3. **`offerItemSplit` function:** Wrapped in a database transaction (`BEGIN`/`COMMIT`/`ROLLBACK`) using `sql.connect()` for a dedicated client. The `qty === 1` branch uses `client.sql` directly instead of calling `offerItem()` because `offerItem()` uses the global `sql` pool and would escape the transaction.
 4. **`updateItem` function:** Builds dynamic SQL SET clauses with positional parameters — the only place where `sql.query()` is used for updates.

@@ -50,7 +50,7 @@ export function SavedPlayerLinks({
             id={`open-player-dashboard-btn-${link.memberId}`}
             size='sm'
             variant='secondary'
-            className='w-full h-fit whitespace-normal text-center'
+            className='w-full h-auto min-h-9 py-2 leading-relaxed whitespace-normal text-center'
           >
             Open Inventory
           </Button>
@@ -60,7 +60,7 @@ export function SavedPlayerLinks({
             id={`copy-player-link-btn-${link.memberId}`}
             size='sm'
             variant='outline'
-            className='flex-1'
+            className='w-full min-w-0'
             onClick={() => onCopy(link.memberToken, link.memberId)}
           >
             {copiedPlayerId === link.memberId ? (
@@ -77,7 +77,7 @@ export function SavedPlayerLinks({
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size='sm' variant='destructive' aria-label={`Remove ${link.memberName}`}>
+              <Button size='icon' variant='destructive' className='shrink-0' aria-label={`Remove ${link.memberName}`}>
                 <LuX className="h-4 w-4" aria-hidden="true" />
               </Button>
             </AlertDialogTrigger>
@@ -117,7 +117,7 @@ export function SavedPlayerLinks({
             </p>
             <Feature1
               items={items}
-              columns={3}
+              columns={2}
               inline
               className='min-w-0'
             />

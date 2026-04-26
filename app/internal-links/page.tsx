@@ -9,6 +9,9 @@ import { InternalLinksPasswordGate } from './PasswordGate'
 import { InternalLinksLogoutButton } from './logout-button'
 import { SessionListSkeleton } from './session-list-skeleton'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export const metadata: Metadata = {
   title: 'Internal Links',
   robots: {

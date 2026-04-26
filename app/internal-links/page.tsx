@@ -16,6 +16,16 @@ export const metadata: Metadata = {
   },
 }
 
+function formatCreatedAt(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 export default async function InternalLinksPage({
   searchParams,
 }: {
@@ -71,6 +81,9 @@ async function SessionsBody({ accessKey, page }: { accessKey?: string; page: num
         >
           <div className="space-y-2">
             <h2 className="font-press-start text-8bit-sm text-foreground break-words">{session.name}</h2>
+            <p className="font-press-start text-8bit-xs text-muted-foreground">
+              Created: {formatCreatedAt(session.createdAt)}
+            </p>
             <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
               <p className="font-press-start text-8bit-xs text-muted-foreground break-all flex-1 min-w-0">
                 {origin}/dm/{session.dmToken}

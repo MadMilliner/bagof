@@ -3,6 +3,9 @@ import { createSession, updateSessionName, getDMSession, logActivity } from '@/d
 import { checkRateLimit } from '@/lib/rateLimit'
 import type { CreateSessionResponse } from '@/types'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function PATCH(req: NextRequest) {
   const rateLimited = checkRateLimit(req, 20, 60_000) // 20 renames per minute
   if (rateLimited) return rateLimited

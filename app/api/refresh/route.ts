@@ -13,6 +13,9 @@ import {
 } from '@/db/queries'
 import { checkRateLimit } from '@/lib/rateLimit'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 /**
  * GET /api/refresh?token=xxx&role=player|dm
  * Returns fresh data for dashboard polling/refresh.

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cleanupExpiredSessions } from '@/db/queries'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 /**
  * GET /api/cleanup
  * Deletes never-used sessions (>31 days old with no data) OR long-dormant sessions (not accessed in 366+ days).

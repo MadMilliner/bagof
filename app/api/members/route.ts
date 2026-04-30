@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getMemberByToken, updateMemberName, getDMSession, addMember, logActivity } from '@/db/queries'
 import { checkRateLimit } from '@/lib/rateLimit'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function POST(req: NextRequest) {
   const rateLimited = checkRateLimit(req, 20, 60_000)
   if (rateLimited) return rateLimited

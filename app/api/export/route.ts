@@ -7,6 +7,9 @@ import {
 } from '@/db/queries'
 import { checkRateLimit } from '@/lib/rateLimit'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET(req: NextRequest) {
   const rateLimited = checkRateLimit(req, 30, 60_000)
   if (rateLimited) return rateLimited

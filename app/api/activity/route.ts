@@ -6,11 +6,20 @@ import {
 } from '@/db/queries'
 import { checkRateLimit } from '@/lib/rateLimit'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 /**
  * GET /api/activity?token=xxx&role=player|dm
  * Returns the session's activity log (most recent 50 entries).
  */
 export async function GET(req: NextRequest) {
+  // Allow production builds to complete even when DB is unreachable.
+  // Next may attempt to collect API route data during build.
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ activity: [] })
+  }
+
   const rateLimited = checkRateLimit(req, 120, 60_000)
   if (rateLimited) return rateLimited
 

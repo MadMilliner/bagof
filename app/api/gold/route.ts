@@ -12,6 +12,9 @@ import {
 } from '@/db/queries'
 import { checkRateLimit } from '@/lib/rateLimit'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // All gold stored as copper pieces (cp)
 // 1 gp = 100 cp, 1 sp = 10 cp
 

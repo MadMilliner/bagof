@@ -11,6 +11,9 @@ import {
 import { checkRateLimit } from '@/lib/rateLimit'
 import type { ItemType } from '@/types'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 interface ImportItem {
   name: string
   description: string

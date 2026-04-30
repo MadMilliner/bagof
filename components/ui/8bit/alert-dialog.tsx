@@ -15,8 +15,9 @@ const AlertDialogPortal = AlertDialogPrimitive.Portal
 function hasDialogTitle(node: React.ReactNode): boolean {
   return React.Children.toArray(node).some((child) => {
     if (!React.isValidElement(child)) return false
-    if (child.type === AlertDialogPrimitive.Title) return true
-    return hasDialogTitle(child.props?.children)
+    const element = child as React.ReactElement<{ children?: React.ReactNode }>
+    if (element.type === AlertDialogPrimitive.Title) return true
+    return hasDialogTitle(element.props?.children)
   })
 }
 

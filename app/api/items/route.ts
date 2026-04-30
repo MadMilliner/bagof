@@ -15,6 +15,9 @@ import {
 import { checkRateLimit } from '@/lib/rateLimit'
 import type { Item } from '@/types'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function POST(req: NextRequest) {
   const rateLimited = checkRateLimit(req, 30, 60_000)
   if (rateLimited) return rateLimited

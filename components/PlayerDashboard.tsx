@@ -367,7 +367,7 @@ export function PlayerDashboard({
             </div>
           </div>
           <div id="player-action-buttons" className="player-action-buttons flex items-center gap-1.5 sm:gap-2 self-end sm:self-auto shrink-0">
-            <Button id="player-refresh-btn" className="player-refresh-btn refresh-data" variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
+            <Button id="player-refresh-btn" className="player-refresh-btn refresh-data h-8 w-8 p-0" variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
               <LuRefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
             </Button>
             <ThemeSelect />
@@ -399,7 +399,15 @@ export function PlayerDashboard({
             onAdjustPublic={deltaCp => adjustGold(deltaCp, 'publicGold')}
             onAdjustPrivate={deltaCp => adjustGold(deltaCp, 'privateGold')}
           />
-          <AddItemForm id="player-add-item-form" className="player-add-item-form" onAdd={addItem} isLoading={loading} showPrivateToggle />
+          <AddItemForm
+            id="player-add-item-form"
+            className="player-add-item-form"
+            onAdd={addItem}
+            isLoading={loading}
+            showPrivateToggle
+            openAsButton
+            openButtonLabel="Add Item to Inventory"
+          />
           <div id="player-inventory-list" className="player-inventory-list space-y-2">
             {myItems.length === 0 ? (
               <p id="player-empty-inventory-message" className="player-empty-inventory-message font-press-start text-8bit-sm text-muted-foreground text-center py-8">

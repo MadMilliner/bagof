@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ItemCard } from '@/components/inventory/ItemCard'
 import { AddItemForm } from '@/components/inventory/AddItemForm'
 import { ItemFilter, filterItems } from '@/components/inventory/ItemFilter'
-import { GoldPanel } from '@/components/gold/GoldPanel'
+import { CurrencyInput, GoldPanel } from '@/components/gold/GoldPanel'
 import { ThemeSelect, ThemeToggle } from '@/components/ThemeProvider'
 import
 {
@@ -190,18 +190,13 @@ export function DMDashboard({
 
   const splitGold = async (amountCp: number) =>
   {
-    // Optimistic update
-    const share = Math.floor(amountCp / members.length)
-    setMembers(prev => prev.map(m => ({ ...m, publicGold: m.publicGold + share })))
-
     const res = await fetch('/api/gold', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dmToken, action: 'split', amountCp }),
     })
-    if (!res.ok) {
-      // Roll back
-      setMembers(prev => prev.map(m => ({ ...m, publicGold: m.publicGold - share })))
+    if (res.ok) {
+      await refreshData()
     }
   }
 
@@ -514,7 +509,7 @@ export function DMDashboard({
                 className="hidden"
               />
               <div id="dm-secondary-actions" className="dm-secondary-actions flex items-center gap-1.5 sm:gap-2">
-                <Button id="dm-refresh-btn" className='dm-refresh-btn refresh-data' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
+                <Button id="dm-refresh-btn" className='dm-refresh-btn refresh-data h-8 w-8 p-0' variant="outline" size="sm" onClick={refreshData} disabled={refreshing} title="Refresh data">
                   <LuRefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
                 </Button>
                 <Button id="dm-export-btn" className="dm-export-btn" variant="outline" size="sm" onClick={handleExport} title="Export session data">
@@ -562,7 +557,9 @@ export function DMDashboard({
             onAdd={addToPool}
             isLoading={loading}
             showPrivateToggle={false}
-            placeholder="Add loot to party pool..."
+            openAsButton
+            openButtonLabel="Add Item to Party Pool"
+            placeholder="Item name"
           />
           <ItemFilter
             id="dm-item-filter"
@@ -642,6 +639,20 @@ export function DMDashboard({
             onSplitGold={splitGold}
           />
 
+          <div id="dm-party-bag-add-section" className="border-2 border-black dark:border-white p-2 sm:p-3 space-y-3 mb-4">
+            <CurrencyInput
+              idPrefix="dm-add-to-party-bag"
+              label={session.currencyType === 'wealth' ? 'Add Wealth to Party Bag (DM)' : 'Add Gold to Party Bag (DM)'}
+              onAdjust={async (deltaCp) => {
+                if (deltaCp <= 0) return
+                await adjustPartyGold(deltaCp)
+              }}
+              loading={loading}
+              currencyType={session.currencyType}
+              showSubtract={false}
+            />
+          </div>
+
           <div id="dm-give-gold-section" className="dm-give-gold-section space-y-3">
             <p id="dm-give-gold-label" className="dm-give-gold-label font-press-start text-xs mb-3">Give {session.currencyType === 'wealth' ? 'Wealth' : 'Currency'} Directly</p>
             {members.map(m => (
@@ -698,7 +709,7 @@ function GiveMemberGold({
     const g = Math.floor(member.publicGold / 100)
     const s = Math.floor((member.publicGold % 100) / 10)
     const c = member.publicGold % 10
-    return [g > 0 && `${g}gp`, s > 0 && `${s}sp`, c > 0 && `${c}cp`].filter(Boolean).join(' ') || '0cp'
+    return [g > 0 && `${g}gp`, s > 0 && `${s}sp`, c > 0 && `${c}cp`].filter(Boolean).join(' ') || '0gp'
   })()
 
   return (

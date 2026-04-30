@@ -25,7 +25,7 @@ import { BagOfLogo } from '@/components/BagOfLogo'
 import { saveSession, getSavedSessions, removeSession, type SavedSession, savePlayerLink, getSavedPlayerLinks, removePlayerLink, type SavedPlayerLink } from '@/lib/savedSessions'
 import { SavedPlayerLinks } from '@/components/SavedPlayerLinks'
 import { SavedCampaigns } from '@/components/SavedCampaigns'
-import { LuBackpack, LuCheck, LuClipboardCopy, LuSwords, LuTriangleAlert, LuX } from 'react-icons/lu'
+import { LuBackpack, LuCheck, LuClipboardCopy, LuExternalLink, LuSwords, LuTriangleAlert, LuX } from 'react-icons/lu'
 
 type Step = 'form' | 'links'
 
@@ -247,16 +247,24 @@ export function CreateSessionForm()
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="font-mono text-[10px] text-muted-foreground break-all">{result.dmUrl}</p>
-            <Button size="sm" variant="outline" onClick={() => copy(result.dmUrl, 'dm')}>
-              {copied === 'dm' ? (
-                <span className="inline-flex items-center gap-1">
-                  <LuCheck className="h-4 w-4" aria-hidden="true" />
-                  Copied!
-                </span>
-              ) : (
-                `Copy ${result.session.dmRole} Link`
-              )}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => copy(result.dmUrl, 'dm')}>
+                {copied === 'dm' ? (
+                  <span className="inline-flex items-center gap-1">
+                    <LuCheck className="h-4 w-4" aria-hidden="true" />
+                    Copied!
+                  </span>
+                ) : (
+                  `Copy ${result.session.dmRole} Link`
+                )}
+              </Button>
+              <Button asChild size="sm" variant="secondary">
+                <a href={result.dmUrl}>
+                  <LuExternalLink className="h-4 w-4" aria-hidden="true" />
+                  Open Link
+                </a>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -270,16 +278,24 @@ export function CreateSessionForm()
             </CardHeader>
             <CardContent className="space-y-2">
               <p className="font-mono text-[10px] text-muted-foreground break-all">{link.url}</p>
-              <Button size="sm" variant="outline" onClick={() => copy(link.url, `m-${i}`)}>
-                {copied === `m-${i}` ? (
-                  <span className="inline-flex items-center gap-1">
-                    <LuCheck className="h-4 w-4" aria-hidden="true" />
-                    Copied!
-                  </span>
-                ) : (
-                  'Copy Link'
-                )}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => copy(link.url, `m-${i}`)}>
+                  {copied === `m-${i}` ? (
+                    <span className="inline-flex items-center gap-1">
+                      <LuCheck className="h-4 w-4" aria-hidden="true" />
+                      Copied!
+                    </span>
+                  ) : (
+                    'Copy Link'
+                  )}
+                </Button>
+                <Button asChild size="sm" variant="secondary">
+                  <a href={link.url} target="_blank" rel="noopener noreferrer">
+                    <LuExternalLink className="h-4 w-4" aria-hidden="true" />
+                    Open Link
+                  </a>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}

@@ -125,12 +125,14 @@ export function ThemeSelect() {
   const { themeSlug, setThemeSlug } = useTheme()
 
   const currentTheme = themes.find(t => t.slug === themeSlug) ?? themes[0]
+  const widestThemeLabel = Math.max(...themes.map(theme => theme.label.length))
+  const triggerWidthCh = widestThemeLabel + 5
 
   return (
     <Select value={themeSlug} onValueChange={setThemeSlug}>
-      <SelectTrigger className="w-[100px] sm:w-[140px] h-9">
+      <SelectTrigger id="theme-select-btn" className="h-9" style={{ width: `${triggerWidthCh}ch` }}>
         <SelectValue>
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1.5 pr-2">
             <span>{currentTheme.emoji}</span>
             <span>{currentTheme.label}</span>
           </span>

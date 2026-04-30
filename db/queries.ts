@@ -467,10 +467,22 @@ export async function splitGold(sessionId: string, amountCp: number): Promise<vo
     }
 
     const share = Math.floor(amountCp / rows.length)
-    // Batch update in a single query (tagged template for type safety)
-    await client.sql`
-      UPDATE members SET public_gold = public_gold + ${share} WHERE session_id = ${sessionId}
-    `
+    const remainder = amountCp % rows.length
+
+    // Apply equal share to all members first.
+    if (share > 0) {
+      await client.sql`
+        UPDATE members SET public_gold = public_gold + ${share} WHERE session_id = ${sessionId}
+      `
+    }
+
+    // Give any leftover cp to one random member so no money is lost.
+    if (remainder > 0) {
+      const randomMember = rows[Math.floor(Math.random() * rows.length)]
+      await client.sql`
+        UPDATE members SET public_gold = public_gold + ${remainder} WHERE id = ${randomMember.id}
+      `
+    }
 
     await client.sql`COMMIT`
   } catch (err) {
@@ -506,17 +518,32 @@ export async function adjustPartyGold(sessionId: string, deltaCp: number): Promi
   )
 }
 
-// Transfer gold from a member's public gold to the party pool atomically.
-// Only succeeds if the member has enough gold. Returns true on success.
+// Transfer gold from a member to the party pool atomically.
+// Uses public gold first. If public gold is empty, it uses private gold.
+// Returns true on success.
 export async function transferToPartyPool(memberId: string, sessionId: string, amountCp: number): Promise<boolean> {
   const { rowCount } = await sql`
-    WITH deduct AS (
+    WITH deduct_public AS (
       UPDATE members SET public_gold = public_gold - ${amountCp}
       WHERE id = ${memberId} AND session_id = ${sessionId} AND public_gold >= ${amountCp}
       RETURNING id
+    ),
+    deduct_private AS (
+      UPDATE members SET private_gold = private_gold - ${amountCp}
+      WHERE id = ${memberId}
+        AND session_id = ${sessionId}
+        AND public_gold = 0
+        AND private_gold >= ${amountCp}
+        AND NOT EXISTS (SELECT 1 FROM deduct_public)
+      RETURNING id
+    ),
+    moved AS (
+      SELECT id FROM deduct_public
+      UNION ALL
+      SELECT id FROM deduct_private
     )
     UPDATE sessions SET party_gold = party_gold + ${amountCp}
-    WHERE id = ${sessionId} AND EXISTS (SELECT 1 FROM deduct)
+    WHERE id = ${sessionId} AND EXISTS (SELECT 1 FROM moved)
   `
   return (rowCount ?? 0) > 0
 }

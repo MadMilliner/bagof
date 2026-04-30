@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/8bit/input'
 import { Textarea } from '@/components/ui/8bit/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select'
 import type { ItemType } from '@/types'
+import { DiceRollerPopup } from '@/components/DiceRoller'
 import { FaDiceD20 } from 'react-icons/fa6'
 
 const ITEM_TYPES: ItemType[] = ['Weapon', 'Armor', 'Consumable', 'Other']
@@ -25,6 +26,8 @@ interface AddItemFormProps
   showPrivateToggle?: boolean
   defaultPrivate?: boolean
   placeholder?: string
+  openAsButton?: boolean
+  openButtonLabel?: string
 }
 
 export function AddItemForm({
@@ -35,6 +38,8 @@ export function AddItemForm({
   showPrivateToggle = true,
   defaultPrivate = false,
   placeholder = 'Item name...',
+  openAsButton = false,
+  openButtonLabel = 'Add Item',
 }: AddItemFormProps)
 {
   const [name, setName] = useState('')
@@ -43,6 +48,7 @@ export function AddItemForm({
   const [quantity, setQuantity] = useState(1)
   const [isPrivate, setIsPrivate] = useState(defaultPrivate)
   const [expanded, setExpanded] = useState(false)
+  const [diceNotation, setDiceNotation] = useState<string | null>(null)
 
   const handleAdd = async () =>
   {
@@ -57,23 +63,48 @@ export function AddItemForm({
 
   return (
     <div id={id} className={`add-item-form ${className || ''} space-y-3 mb-4`.trim()}>
+      {diceNotation && <DiceRollerPopup notation={diceNotation} onClose={() => setDiceNotation(null)} />}
       <div id="add-item-form-main-row" className="add-item-form-main-row flex gap-2">
-        <Input
-          id="item-name-input"
-          className="item-name-input flex-1"
-          placeholder={placeholder}
-          value={name}
-          onChange={e => setName(e.target.value)}
-          onFocus={() => setExpanded(true)}
-          onKeyDown={e => e.key === 'Enter' && handleAdd()}
-        />
-        <Button id="add-item-btn" className="add-item-btn" onClick={handleAdd} disabled={!name.trim() || isLoading}>
-          {isLoading ? '...' : 'Add'}
-        </Button>
+        {openAsButton ? (
+          <Button
+            id="open-item-form-btn"
+            className="open-item-form-btn w-full"
+            variant="outline"
+            onClick={() => setExpanded(true)}
+            disabled={expanded || isLoading}
+          >
+            {openButtonLabel}
+          </Button>
+        ) : (
+          <>
+            <Input
+              id="item-name-input"
+              className="item-name-input flex-1"
+              placeholder={placeholder}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onFocus={() => setExpanded(true)}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            />
+            <Button id="add-item-btn" className="add-item-btn" onClick={handleAdd} disabled={!name.trim() || isLoading}>
+              {isLoading ? '...' : 'Add'}
+            </Button>
+          </>
+        )}
       </div>
 
       {expanded && (
         <div id="add-item-form-expanded" className="add-item-form-expanded border-2 border-black dark:border-white p-2 sm:p-3 space-y-3 [box-shadow:4px_4px_0px_0px_rgba(0,0,0,1)] dark:[box-shadow:4px_4px_0px_0px_rgba(255,255,255,1)] overflow-x-hidden">
+          {openAsButton && (
+            <Input
+              id="item-name-input"
+              className="item-name-input"
+              placeholder={placeholder}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            />
+          )}
           <Textarea
             id="item-description-input"
             className="item-description-input"
@@ -83,7 +114,15 @@ export function AddItemForm({
             rows={2}
           />
           <p id="add-item-form-tip" className="add-item-form-tip font-press-start text-8bit-xs text-muted-foreground mt-1">
-            Tip: Use '1d20+5' to make rolls clickable. <FaDiceD20 className="inline-block text-lg" />
+            Tip: Use{' '}
+            <button
+              type="button"
+              onClick={() => setDiceNotation('1d20+5')}
+              className="text-orange-600 dark:text-orange-400 underline decoration-dotted font-bold px-1 hover:bg-orange-100 dark:hover:bg-orange-900/30"
+            >
+              1d20+5
+            </button>
+            {' '}to make rolls clickable. <FaDiceD20 className="inline-block text-lg" />
           </p>
 
           <div id="add-item-form-options-row" className="add-item-form-options-row flex flex-wrap gap-3 items-center">
@@ -127,9 +166,22 @@ export function AddItemForm({
             )}
           </div>
 
-          <Button id="collapse-item-form-btn" className="collapse-item-form-btn" variant="ghost" size="sm" onClick={() => setExpanded(false)}>
-            Collapse
-          </Button>
+          <div className="flex items-center gap-2">
+            {openAsButton && (
+              <Button
+                id="add-item-btn"
+                className="add-item-btn"
+                size="sm"
+                onClick={handleAdd}
+                disabled={!name.trim() || isLoading}
+              >
+                {isLoading ? '...' : 'Add'}
+              </Button>
+            )}
+            <Button id="cancel-item-form-btn" className="cancel-item-form-btn" variant="outline" size="sm" onClick={() => setExpanded(false)}>
+              Cancel
+            </Button>
+          </div>
         </div>
       )}
     </div>

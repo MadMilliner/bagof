@@ -33,7 +33,7 @@ describe('formatCurrency', () => {
     expect(formatCurrency(100, 'dnd')).toBe('1 gp')
     expect(formatCurrency(10, 'dnd')).toBe('1 sp')
     expect(formatCurrency(1, 'dnd')).toBe('1 cp')
-    expect(formatCurrency(0, 'dnd')).toBe('0 cp')
+    expect(formatCurrency(0, 'dnd')).toBe('0gp')
   })
 
   it('formats wealth currency', () => {

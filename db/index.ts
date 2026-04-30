@@ -13,6 +13,13 @@ if (!isVercelRuntime && localUrl) {
   process.env.POSTGRES_URL = localUrl
 }
 
+if (process.env.NODE_ENV !== 'production') {
+  const dbSource = !isVercelRuntime && localUrl
+    ? 'LOCAL_POSTGRES_URL'
+    : 'POSTGRES_URL'
+  console.info(`[db] Using ${dbSource} (${isVercelRuntime ? 'vercel runtime' : 'local runtime'})`)
+}
+
 // Validate that the selected database connection string is configured
 if (!process.env.POSTGRES_URL) {
   throw new Error(

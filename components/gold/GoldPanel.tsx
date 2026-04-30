@@ -25,7 +25,7 @@ export function fromCp(totalCp: number): { gp: number; sp: number; cp: number } 
 
 export function formatCurrency(totalCp: number, type: 'dnd' | 'wealth' = 'dnd'): string {
   if (type === 'wealth') return `${totalCp} Wealth`
-  if (totalCp === 0) return '0 cp'
+  if (totalCp === 0) return '0gp'
   const { gp, sp, cp } = fromCp(totalCp)
   const parts = []
   if (gp > 0) parts.push(`${gp} gp`)
@@ -42,12 +42,14 @@ export function CurrencyInput({
   loading,
   currencyType = 'dnd',
   idPrefix = 'currency',
+  showSubtract = true,
 }: {
   label: string
   onAdjust: (deltaCp: number) => Promise<void>
   loading: boolean
   currencyType?: 'dnd' | 'wealth'
   idPrefix?: string
+  showSubtract?: boolean
 }) {
   const [gp, setGp] = useState('')
   const [sp, setSp] = useState('')
@@ -127,15 +129,17 @@ export function CurrencyInput({
         >
           + Add
         </Button>
-        <Button
-          id={`${idPrefix}-subtract-btn`}
-          size="sm"
-          variant="outline"
-          disabled={!hasValue || deltaCp === 0 || loading}
-          onClick={() => handle(-1)}
-        >
-          − Subtract
-        </Button>
+        {showSubtract && (
+          <Button
+            id={`${idPrefix}-subtract-btn`}
+            size="sm"
+            variant="outline"
+            disabled={!hasValue || deltaCp === 0 || loading}
+            onClick={() => handle(-1)}
+          >
+            − Subtract
+          </Button>
+        )}
         {deltaCp > 0 && (
           <span className="font-press-start text-[10px] text-muted-foreground">
             = {formatCurrency(deltaCp, currencyType)}

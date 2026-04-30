@@ -10,6 +10,7 @@ import { ItemFilter, filterItems } from '@/components/inventory/ItemFilter'
 import { GoldPanel, CurrencyInput, formatCurrency } from '@/components/gold/GoldPanel'
 import { ThemeSelect, ThemeToggle } from '@/components/ThemeProvider'
 import { Button } from '@/components/ui/8bit/button'
+import { Input } from '@/components/ui/8bit/input'
 import { LuRefreshCw, LuSwords } from 'react-icons/lu'
 import type { Item, Member, Session, ItemType } from '@/types'
 import { savePlayerLink } from '@/lib/savedSessions'
@@ -342,10 +343,10 @@ export function PlayerDashboard({
               <BagOfLogo />
               {isEditingName ? (
                 <div id="player-name-edit-container" className="player-name-edit-container flex items-center gap-2 mt-1 sm:mt-2 min-w-0">
-                  <input
+                  <Input
                     autoFocus
                     id="player-name-input"
-                    className="player-name-input font-press-start text-xs border-2 border-black dark:border-white bg-background px-1 py-0.5 w-full min-w-0 outline-none"
+                    className="player-name-input w-full min-w-0 text-xs h-9"
                     value={memberName}
                     onChange={e => setMemberName(e.target.value)}
                     onBlur={updateName}
@@ -517,7 +518,7 @@ export function PlayerDashboard({
         </TabsContent>
 
         <TabsContent id="player-tab-content-activity" className="player-tab-content-activity" value="activity">
-          <ActivityLog token={memberToken} role="player" />
+          <ActivityLog token={memberToken} role="player" currencyType={session.currencyType} />
         </TabsContent>
       </Tabs>
     </div>

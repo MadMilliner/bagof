@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/8bit/card'
 import { Badge } from '@/components/ui/8bit/badge'
 import { Button } from '@/components/ui/8bit/button'
 import { Textarea } from '@/components/ui/8bit/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select'
 import
 {
   AlertDialog,
@@ -167,17 +168,21 @@ export function ItemCard({
                 )
               ) : (
                 <div id={`item-edit-form-${item.id}`} className="item-edit-form mb-2 space-y-2 pt-2">
-                  <select
+                  <Select
                     id={`item-type-select-${item.id}`}
-                    className="item-type-select font-press-start text-8bit-sm w-full border-2 border-black dark:border-white bg-background px-2 py-2"
                     value={draftType}
-                    onChange={e => setDraftType(e.target.value as Item['type'])}
+                    onValueChange={value => setDraftType(value as Item['type'])}
                   >
-                    <option value="Weapon">Weapon</option>
-                    <option value="Armor">Armor</option>
-                    <option value="Consumable">Consumable</option>
-                    <option value="Other">Other</option>
-                  </select>
+                    <SelectTrigger className="item-type-select w-full text-8bit-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Weapon">Weapon</SelectItem>
+                      <SelectItem value="Armor">Armor</SelectItem>
+                      <SelectItem value="Consumable">Consumable</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Textarea
                     id={`item-description-textarea-${item.id}`}
                     placeholder="Description (e.g., '1d8+2 damage')"

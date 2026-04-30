@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/8bit/button'
 import { Input } from '@/components/ui/8bit/input'
 import { Badge } from '@/components/ui/8bit/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select'
 import { ThemeSelect, ThemeToggle } from '@/components/ThemeProvider'
 import {
   AlertDialog,
@@ -334,30 +335,38 @@ export function CreateSessionForm()
 
           <div className="space-y-2">
             <label className="font-press-start text-[10px]">Currency System</label>
-            <select
+            <Select
               id="currency-system-select"
-              className="font-press-start text-[10px] w-full border-2 border-black dark:border-white bg-background px-2 py-2"
               value={currencyType}
-              onChange={e => setCurrencyType(e.target.value as 'dnd' | 'wealth')}
+              onValueChange={value => setCurrencyType(value as 'dnd' | 'wealth')}
             >
-              <option value="dnd">Traditional (GP / SP / CP)</option>
-              <option value="wealth">Abstract Wealth (Single Number)</option>
-            </select>
+              <SelectTrigger className="w-full text-[10px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dnd">Traditional (GP / SP / CP)</SelectItem>
+                <SelectItem value="wealth">Abstract Wealth (Single Number)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <label className="font-press-start text-[10px]">What do you prefer to be called?</label>
-            <select
+            <Select
               id="dm-role-select"
-              className="font-press-start text-[10px] w-full border-2 border-black dark:border-white bg-background px-2 py-2"
               value={dmRole}
-              onChange={e => setDmRole(e.target.value)}
+              onValueChange={setDmRole}
             >
-              <option value="Dungeon Master">Dungeon Master</option>
-              <option value="Game Master">Game Master</option>
-              <option value="Storyteller">Storyteller</option>
-              <option value="Director">Director</option>
-              <option value="Referee">Referee</option>
-            </select>
+              <SelectTrigger className="w-full text-[10px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Dungeon Master">Dungeon Master</SelectItem>
+                <SelectItem value="Game Master">Game Master</SelectItem>
+                <SelectItem value="Storyteller">Storyteller</SelectItem>
+                <SelectItem value="Director">Director</SelectItem>
+                <SelectItem value="Referee">Referee</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

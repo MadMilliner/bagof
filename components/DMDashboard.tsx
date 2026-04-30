@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/c
 import { Badge } from '@/components/ui/8bit/badge'
 import { Button } from '@/components/ui/8bit/button'
 import { Input } from '@/components/ui/8bit/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select'
 import { ItemCard } from '@/components/inventory/ItemCard'
 import { AddItemForm } from '@/components/inventory/AddItemForm'
 import { ItemFilter, filterItems } from '@/components/inventory/ItemFilter'
@@ -67,6 +68,7 @@ export function DMDashboard({
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ items: number; members: number; gold: number } | null>(null)
   const [showImportBanner, setShowImportBanner] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [sessionName, setSessionName] = useState(session.name)
   const [isEditingName, setIsEditingName] = useState(false)
@@ -256,6 +258,7 @@ export function DMDashboard({
   }
 
   const handleExport = async () => {
+    setActionError(null)
     try {
       const res = await fetch(`/api/export?token=${dmToken}`)
       if (!res.ok) throw new Error('Export failed')
@@ -271,8 +274,8 @@ export function DMDashboard({
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch {
-      alert('Failed to export session')
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to export session')
     }
   }
 
@@ -286,6 +289,7 @@ export function DMDashboard({
 
     setImporting(true)
     setImportResult(null)
+    setActionError(null)
 
     try {
       const formData = new FormData()
@@ -305,7 +309,7 @@ export function DMDashboard({
       // Refresh data after import
       await refreshData()
     } catch (err: any) {
-      alert(err.message || 'Failed to import session')
+      setActionError(err?.message || 'Failed to import session')
     } finally {
       setImporting(false)
       // Reset file input
@@ -371,10 +375,10 @@ export function DMDashboard({
               <p id="dm-session-name" className="dm-session-name font-press-start text-8bit-sm text-muted-foreground mt-1 sm:mt-2 truncate">
                   {isEditingName ? (
                     <div id="dm-name-edit-container" className="dm-name-edit-container flex items-center gap-2">
-                      <input
+                      <Input
                         autoFocus
                         id="dm-session-name-input"
-                        className="dm-session-name-input font-press-start text-8bit-sm border-2 border-black dark:border-white bg-background px-1 py-0.5 w-full min-w-0 outline-none"
+                        className="dm-session-name-input w-full min-w-0 text-8bit-sm h-9"
                         value={sessionName}
                         onChange={e => setSessionName(e.target.value)}
                         onBlur={handleRename}
@@ -460,7 +464,7 @@ export function DMDashboard({
                         <Input
                           readOnly
                           value={origin ? `${origin}/p/${m.token}` : `/p/${m.token}`}
-                          className="dm-player-link-input text-8bit-sm h-8"
+                          className="dm-player-link-input text-8bit-sm h-9"
                         />
                       <div className="flex gap-2">
                         <Button
@@ -522,6 +526,9 @@ export function DMDashboard({
                   <span className="hidden sm:inline">{importing ? 'Importing...' : 'Import'}</span>
                 </Button>
               </div>
+              {actionError && (
+                <p className="font-press-start text-8bit-xs text-destructive">{actionError}</p>
+              )}
             </div>
         </div>
       </header>
@@ -645,7 +652,7 @@ export function DMDashboard({
 
         {/* ── Activity Log ── */}
         <TabsContent id="dm-tab-content-activity" className="dm-tab-content-activity" value="activity">
-          <ActivityLog token={dmToken} role="dm" />
+          <ActivityLog token={dmToken} role="dm" currencyType={session.currencyType} />
         </TabsContent>
       </Tabs>
     </div>
@@ -705,39 +712,43 @@ function GiveMemberGold({
         {currencyType === 'wealth' ? (
           <div className="give-gold-wealth-input flex gap-1 items-center">
             <Input type="number" min={0} placeholder="0" value={cp}
-              onChange={e => setCp(e.target.value)} className="give-gold-wealth-field w-full max-w-24 sm:w-20 text-center" />
+              onChange={e => setCp(e.target.value)} className="give-gold-wealth-field w-[6ch] text-center" />
             <span className="font-press-start text-8bit-sm text-muted-foreground shrink-0">Wealth</span>
           </div>
         ) : (
-          <div className="give-gold-currency-inputs grid grid-cols-3 gap-1 items-center min-w-0">
+          <div className="give-gold-currency-inputs grid grid-cols-[max-content_max-content_max-content] gap-1 justify-start items-center min-w-0">
             <div className="give-gold-gp-container flex items-center gap-0.5 min-w-0">
               <Input type="number" min={0} placeholder="0" value={gp}
-                onChange={e => setGp(e.target.value)} className="give-gold-gp-input flex-1 min-w-0 text-center" />
+                onChange={e => setGp(e.target.value)} className="give-gold-gp-input w-[6ch] text-center" />
               <span className="font-press-start text-8bit-sm text-yellow-600 dark:text-yellow-400 shrink-0">gp</span>
             </div>
             <div className="give-gold-sp-container flex items-center gap-0.5 min-w-0">
               <Input type="number" min={0} placeholder="0" value={sp}
-                onChange={e => setSp(e.target.value)} className="give-gold-sp-input flex-1 min-w-0 text-center" />
+                onChange={e => setSp(e.target.value)} className="give-gold-sp-input w-[6ch] text-center" />
               <span className="font-press-start text-8bit-sm text-slate-400 shrink-0">sp</span>
             </div>
             <div className="give-gold-cp-container flex items-center gap-0.5 min-w-0">
               <Input type="number" min={0} placeholder="0" value={cp}
-                onChange={e => setCp(e.target.value)} className="give-gold-cp-input flex-1 min-w-0 text-center" />
+                onChange={e => setCp(e.target.value)} className="give-gold-cp-input w-[6ch] text-center" />
               <span className="font-press-start text-8bit-sm text-orange-600 dark:text-orange-400 shrink-0">cp</span>
             </div>
           </div>
         )}
 
         <div id={`give-gold-actions-${member.id}`} className="give-gold-actions flex gap-2 items-center mb-2">
-          <select
+          <Select
             id={`give-gold-field-select-${member.id}`}
-            className="give-gold-field-select font-press-start text-8bit-sm border-2 border-black dark:border-white bg-background px-1 py-1 h-9 flex-1 sm:flex-none"
             value={field}
-            onChange={e => setField(e.target.value as 'publicGold' | 'privateGold')}
+            onValueChange={value => setField(value as 'publicGold' | 'privateGold')}
           >
-            <option value="publicGold">Public</option>
-            <option value="privateGold">Private</option>
-          </select>
+            <SelectTrigger className="give-gold-field-select h-9 flex-1 sm:flex-none sm:w-[130px] text-8bit-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="publicGold">Public</SelectItem>
+              <SelectItem value="privateGold">Private</SelectItem>
+            </SelectContent>
+          </Select>
           <Button id={`dm-give-gold-btn-${member.id}`} className={`dm-give-gold-btn dm-give-gold-btn-${member.id}`} size="sm" variant="secondary" disabled={!hasValue || deltaCp === 0 || loading} onClick={() => handle(1)}>Give</Button>
           <Button id={`dm-take-gold-btn-${member.id}`} className={`dm-take-gold-btn dm-take-gold-btn-${member.id}`} size="sm" variant="outline" disabled={!hasValue || deltaCp === 0 || loading} onClick={() => handle(-1)}>Take</Button>
         </div>

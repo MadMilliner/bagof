@@ -76,12 +76,12 @@ export function CurrencyInput({
             placeholder="0"
             value={cp}
             onChange={e => setCp(e.target.value)}
-            className="w-full max-w-24 sm:w-20 text-center"
+            className="w-[6ch] text-center"
           />
           <span className="font-press-start text-[10px] text-muted-foreground shrink-0">Wealth</span>
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-1 items-center min-w-0">
+        <div className="grid grid-cols-[max-content_max-content_max-content] gap-1 justify-start items-center min-w-0">
           <div className="flex items-center gap-0.5 min-w-0">
             <Input
               type="number"
@@ -89,7 +89,7 @@ export function CurrencyInput({
               placeholder="0"
               value={gp}
               onChange={e => setGp(e.target.value)}
-              className="flex-1 min-w-0 text-center"
+              className="w-[6ch] text-center"
             />
             <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400 shrink-0">gp</span>
           </div>
@@ -100,7 +100,7 @@ export function CurrencyInput({
               placeholder="0"
               value={sp}
               onChange={e => setSp(e.target.value)}
-              className="flex-1 min-w-0 text-center"
+              className="w-[6ch] text-center"
             />
             <span className="font-press-start text-[10px] text-slate-400 shrink-0">sp</span>
           </div>
@@ -111,7 +111,7 @@ export function CurrencyInput({
               placeholder="0"
               value={cp}
               onChange={e => setCp(e.target.value)}
-              className="flex-1 min-w-0 text-center"
+              className="w-[6ch] text-center"
             />
             <span className="font-press-start text-[10px] text-orange-600 dark:text-orange-400 shrink-0">cp</span>
           </div>
@@ -266,24 +266,24 @@ export function GoldPanel({
             {currencyType === 'wealth' ? (
               <div id={id ? `${id}-split-wealth-input` : undefined} className="gold-panel-split-wealth-input flex gap-1 items-center">
                 <Input type="number" min={0} placeholder="0" value={splitCp}
-                  onChange={e => setSplitCp(e.target.value)} className="gold-panel-split-wealth-field w-full max-w-24 sm:w-20 text-center" />
+                  onChange={e => setSplitCp(e.target.value)} className="gold-panel-split-wealth-field w-[6ch] text-center" />
                 <span className="font-press-start text-[10px] text-muted-foreground shrink-0">Wealth</span>
               </div>
             ) : (
-              <div id={id ? `${id}-split-currency-inputs` : undefined} className="gold-panel-split-currency-inputs grid grid-cols-3 gap-1 items-center min-w-0">
+              <div id={id ? `${id}-split-currency-inputs` : undefined} className="gold-panel-split-currency-inputs grid grid-cols-[max-content_max-content_max-content] gap-1 justify-start items-center min-w-0">
                 <div className="gold-panel-split-gp-container flex items-center gap-0.5 min-w-0">
                   <Input type="number" min={0} placeholder="0" value={splitGp}
-                    onChange={e => setSplitGp(e.target.value)} className="gold-panel-split-gp-input flex-1 min-w-0 text-center" />
+                    onChange={e => setSplitGp(e.target.value)} className="gold-panel-split-gp-input w-[6ch] text-center" />
                   <span className="font-press-start text-[10px] text-yellow-600 dark:text-yellow-400 shrink-0">gp</span>
                 </div>
                 <div className="gold-panel-split-sp-container flex items-center gap-0.5 min-w-0">
                   <Input type="number" min={0} placeholder="0" value={splitSp}
-                    onChange={e => setSplitSp(e.target.value)} className="gold-panel-split-sp-input flex-1 min-w-0 text-center" />
+                    onChange={e => setSplitSp(e.target.value)} className="gold-panel-split-sp-input w-[6ch] text-center" />
                   <span className="font-press-start text-[10px] text-slate-400 shrink-0">sp</span>
                 </div>
                 <div className="gold-panel-split-cp-container flex items-center gap-0.5 min-w-0">
                   <Input type="number" min={0} placeholder="0" value={splitCp}
-                    onChange={e => setSplitCp(e.target.value)} className="gold-panel-split-cp-input flex-1 min-w-0 text-center" />
+                    onChange={e => setSplitCp(e.target.value)} className="gold-panel-split-cp-input w-[6ch] text-center" />
                   <span className="font-press-start text-[10px] text-orange-600 dark:text-orange-400 shrink-0">cp</span>
                 </div>
               </div>

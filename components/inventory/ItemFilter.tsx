@@ -1,6 +1,7 @@
 'use client'
 
 import { Input } from '@/components/ui/8bit/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select'
 import type { ItemType } from '@/types'
 
 interface ItemFilterProps {
@@ -37,15 +38,19 @@ export function ItemFilter({
           onChange={e => onSearchChange(e.target.value)}
           className="flex-1 min-w-0 text-8bit-sm h-9"
         />
-        <select
-          className="font-press-start text-8bit-sm border-2 border-black dark:border-white bg-background px-2 py-1 h-9"
+        <Select
           value={typeFilter}
-          onChange={e => onTypeFilterChange(e.target.value as ItemType | 'All')}
+          onValueChange={value => onTypeFilterChange(value as ItemType | 'All')}
         >
-          {TYPES.map(t => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
+          <SelectTrigger className="h-9 w-[130px] text-8bit-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TYPES.map(t => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       {(search || typeFilter !== 'All') && (
         <p className="font-press-start text-8bit-xs text-muted-foreground">

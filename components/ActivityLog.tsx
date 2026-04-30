@@ -21,6 +21,7 @@ import {
 } from 'react-icons/lu'
 import { Card, CardContent } from '@/components/ui/8bit/card'
 import { Button } from '@/components/ui/8bit/button'
+import { formatCurrency } from '@/components/gold/GoldPanel'
 import type { ActivityEntry } from '@/types'
 
 // ── Action icons and labels ────────────────────────────────────
@@ -66,9 +67,24 @@ function timeAgo(dateStr: string): string {
 interface ActivityLogProps {
   token: string
   role: 'player' | 'dm'
+  currencyType?: 'dnd' | 'wealth'
 }
 
-export function ActivityLog({ token, role }: ActivityLogProps) {
+function formatSignedCurrency(amountCp: number, explicitPlus: boolean, currencyType: 'dnd' | 'wealth'): string {
+  const sign = amountCp < 0 ? '-' : explicitPlus ? '+' : ''
+  return `${sign}${formatCurrency(Math.abs(amountCp), currencyType)}`
+}
+
+function formatActivityDetails(details: string, currencyType: 'dnd' | 'wealth'): string {
+  return details.replace(/([+-]?)(\d+)\s*cp\b/gi, (_, sign: string, digits: string) => {
+    const cpValue = Number.parseInt(digits, 10)
+    if (Number.isNaN(cpValue)) return `${sign}${digits} cp`
+    const signedValue = sign === '-' ? -cpValue : cpValue
+    return formatSignedCurrency(signedValue, sign === '+', currencyType)
+  })
+}
+
+export function ActivityLog({ token, role, currencyType = 'dnd' }: ActivityLogProps) {
   const [entries, setEntries] = useState<ActivityEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -152,7 +168,7 @@ export function ActivityLog({ token, role }: ActivityLogProps) {
                 <p id={`activity-entry-details-${entry.id}`} className="activity-entry-details font-press-start text-8bit-sm text-muted-foreground leading-relaxed">
                   <span className="activity-entry-actor text-foreground">{entry.actorName}</span>
                   {entry.details && (
-                    <span className="activity-entry-details-text"> — {entry.details}</span>
+                    <span className="activity-entry-details-text"> — {formatActivityDetails(entry.details, currencyType)}</span>
                   )}
                 </p>
               </div>

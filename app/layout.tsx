@@ -61,9 +61,10 @@ export default function RootLayout({ children }: { children: React.ReactNode })
               <CardDescription>©2026 <a className='underline' href="https://www.simulacrumtechnologies.com" target="_blank">Simulacrum Technologies</a></CardDescription>
             </CardHeader>
             <CardContent>
+              <p>If you like this app, please consider joining our <a className='underline' href="https://www.simulacrumtechnologies.com" target="_blank">Patreon</a> to support us.</p>
               <p>All rights reserved. Website design and content are protected by copyright law. Built by DMs, for DMs.</p>
               <p>Join our <a className='text-stone-500 underline' href="https://discord.gg/m4AnYSDueM" target="_blank">Discord server</a> for updates and to provide feedback.</p>
-              <p>Please also check out our <a href="http://battletracker.simulacrumtechnologies.com/" target="_blank" className="text-stone-500 underline">Battle Tracker</a> app.</p>
+              {/* <p>Please also check out our <a href="http://battletracker.simulacrumtechnologies.com/" target="_blank" className="text-stone-500 underline">Battle Tracker</a> app.</p> */}
             </CardContent>
             <CardFooter>
             </CardFooter>

@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+set -eu
+
+echo "[pre-commit] Running production build checks..."
+pnpm build
+
+echo "[pre-commit] Running tests..."
+pnpm test
+
+echo "[pre-commit] Re-staging any updated files..."
+git add -A
+
+echo "[pre-commit] Done."

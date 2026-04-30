@@ -74,7 +74,17 @@
 
 /db
   index.ts                   ← Vercel Postgres `sql` + `connect` exports + `migrate()` (auto-creates tables)
-  queries.ts                 ← All database helper functions (mappers + CRUD)
+  queries.ts                 ← Compatibility export barrel (`export * from ./queries/index`)
+  /queries
+    init.ts                  ← Build-safe migration bootstrap
+    mappers.ts               ← DB row → app type mappers
+    lookups.ts               ← Single-record lookup helpers
+    sessions.ts              ← Session fetch/create/pagination/access helpers
+    items.ts                 ← Item CRUD + split-offer logic
+    gold.ts                  ← Gold split/adjust/transfer operations
+    members.ts               ← Member/session delete + update helpers
+    activity.ts              ← Activity write/read helpers
+    index.ts                 ← Aggregated exports + init side effect
 
 /lib
   utils.ts                   ← `cn()` helper (clsx + tailwind-merge)
@@ -83,6 +93,14 @@
 
 /types
   index.ts                   ← Shared TypeScript types: Item, Member, Session, etc.
+
+/.github
+  /ISSUE_TEMPLATE
+    bug_report.md
+    feature_request.md
+  pull_request_template.md
+  /workflows
+    ci.yml
 ```
 
 ---
@@ -317,6 +335,19 @@ ActivityEntry { id, sessionId, memberId, actorName, action, details, createdAt }
 SavedSession { sessionId, sessionName, dmRole, dmToken, savedAt }  ← lib/savedSessions.ts (localStorage: `bag-of-saved-sessions`)
 SavedPlayerLink { memberId, sessionId, sessionName, memberName, memberToken, dmRole, savedAt }  ← lib/savedSessions.ts (localStorage: `bag-of-saved-players`)
 ```
+
+---
+
+## Open Source Templates & CI
+
+- Issue templates:
+  - `.github/ISSUE_TEMPLATE/bug_report.md`
+  - `.github/ISSUE_TEMPLATE/feature_request.md`
+- PR template:
+  - `.github/pull_request_template.md`
+- CI workflow:
+  - `.github/workflows/ci.yml`
+  - Runs `pnpm lint`, `pnpm test`, and `pnpm build` on PRs (and manual dispatch).
 
 ---
 

@@ -1,152 +1,93 @@
-# 👜 Bag of
+# Bag of
 
-A shared party loot manager for TTRPGs — styled with [8bitcn/ui](https://8bitcn.com).
+Bag of is a shared party loot manager for TTRPGs. It is accountless by design: one DM link and one link per player.
 
-No accounts. One link per person.
+Built with a retro 8-bit UI style using [8bitcn/ui](https://8bitcn.com).
 
----
+## Quickstart (Local Dev)
 
-## Stack
-
-| Layer | Choice |
-|---|---|
-| Framework | Next.js 15 (App Router) |
-| Database | Vercel Postgres (`@vercel/postgres`) — raw SQL |
-| UI | 8bitcn/ui (shadcn-compatible 8-bit components) |
-| Font | Press Start 2P (Google Fonts) |
-| Styling | Tailwind CSS v3 |
-| Package Manager | pnpm |
-
-Tables are auto-created on first request — no migration step needed.
-
----
-
-## Setup
-
-### 1. Clone and install
+1. Install dependencies:
 
 ```bash
-git clone <repo-url> bag-of
-cd bag-of
 pnpm install
 ```
 
-### 2. Configure environment
-
-Create `.env.local` with a local dev database URL:
+2. Copy environment variables:
 
 ```bash
 cp .env.example .env.local
-# Edit .env.local with your LOCAL_POSTGRES_URL
 ```
 
-For production (Vercel), set `POSTGRES_URL` to your Neon connection string.
+3. Set `LOCAL_POSTGRES_URL` in `.env.local` to your local Postgres database.
 
-Runtime behavior:
-- Outside Vercel (local dev/test): uses `LOCAL_POSTGRES_URL` (or `POSTGRES_URL_LOCAL`).
-- In Vercel runtime: uses `POSTGRES_URL`.
-
-### 3. Run
+4. Run:
 
 ```bash
 pnpm dev
 ```
 
-The database tables are created automatically on first run.
+5. Open [http://localhost:3000](http://localhost:3000).
 
-### 4. Test
+## Scripts
 
-```bash
-pnpm test
-```
+- `pnpm dev` - start local dev server
+- `pnpm test` - run tests once
+- `pnpm test:watch` - run tests in watch mode
+- `pnpm build` - production build
+- `pnpm lint` - lint project
 
----
+## Environment and Databases
 
-## How it works
+See `docs/environment.md` for full details.
 
-1. **DM visits `/`** — enters a campaign name and party member names
-2. **Links are generated** — one DM link, one per player. No accounts, no passwords.
-3. **DM link** (`/dm/:token`) — add loot to party pool, split gold, view all inventories, activity log
-4. **Player links** (`/p/:token`) — manage personal inventory, claim from party pool, transfer gold
+At a glance:
 
----
+- Local/dev runtime prefers `LOCAL_POSTGRES_URL` (or `POSTGRES_URL_LOCAL`).
+- Vercel runtime uses `POSTGRES_URL`.
+- During `pnpm build`, DB migration attempts are safely skipped when DB is unreachable so builds can still complete.
 
-## File structure
+## API Docs
 
-```
-/app
-  /api
-    /session/route.ts        ← POST: create session + members
-    /items/route.ts          ← POST/PATCH/DELETE: item management
-    /gold/route.ts           ← PATCH: gold operations (split, give, adjust, transfer)
-    /members/route.ts        ← POST: add member; PATCH: rename member
-    /refresh/route.ts        ← GET: dashboard data refresh (polling)
-    /activity/route.ts       ← GET: session activity log
-  /dm/[token]/page.tsx       ← DM dashboard (server component → client)
-  /p/[token]/page.tsx        ← Player dashboard (server component → client)
-  page.tsx                   ← Session creation form (home page)
-  globals.css                ← Tailwind + CSS variables (light/dark themes)
-  layout.tsx                 ← Root layout: font, theme, footer
-  not-found.tsx              ← 404 page
+- `docs/api.md` - current endpoint contracts, request/response examples, and notes
 
+## Architecture Overview
 
-/components
-  /ui/8bit/                  ← 8bitcn components (inlined, no CLI needed)
-    alert-dialog.tsx
-    badge.tsx
-    button.tsx
-    card.tsx
-    input.tsx
-    select.tsx
-    sheet.tsx
-    tabs.tsx
-    textarea.tsx
-  /inventory/
-    ItemCard.tsx              ← Item display with actions (claim/offer/edit/drop)
-    AddItemForm.tsx           ← Reusable item creation form
-    ItemFilter.tsx            ← Search bar + type filter for item lists
-  /gold/
-    GoldPanel.tsx             ← Currency display + adjustment (shared by DM & player)
-  CreateSessionForm.tsx       ← Two-step form: create → share links
-  DMDashboard.tsx             ← DM view: party pool, members tab, gold tab, log tab
-  PlayerDashboard.tsx         ← Player view: inventory, party bag, other members
-  DiceRoller.tsx              ← Modal dice roller (parses NdN notation)
-  ThemeProvider.tsx            ← Light/dark theme context + toggle
+Core flow:
 
-/db
-  index.ts                    ← Vercel Postgres `sql` + `connect` exports + `migrate()` + env validation
-  queries.ts                  ← All database helper functions (mappers + CRUD + activity log)
+1. DM creates a session on `/`.
+2. App generates one DM link and one player link per member.
+3. DM dashboard (`/dm/[token]`) manages party bag, member inventories, and currency operations.
+4. Player dashboard (`/p/[token]`) manages personal inventory, party bag interactions, and activity.
 
-/lib
-  utils.ts                    ← cn() helper (clsx + tailwind-merge)
-  rateLimit.ts                ← In-memory rate limiter (IP-based, per-route limits)
-  savedSessions.ts            ← localStorage persistence for DM session links
+Main areas:
 
-/types
-  index.ts                    ← Shared TypeScript types: Item, Member, Session, etc.
-```
+- `app/api/*`: route handlers for session, items, gold, members, refresh, activity, import/export.
+- `components/*`: UI and feature components.
+- `db/*`: DB client setup and query layer.
+- `lib/*`: shared utilities (rate limit, helpers, local storage helpers).
+- `types/*`: shared TypeScript types.
 
----
+## Contributing
+
+Please read `CONTRIBUTING.md` before opening a PR.
 
 ## Deploying
 
-The app is designed for [Vercel](https://vercel.com) with Vercel Postgres:
+Vercel is the primary deployment target.
 
-1. Push to GitHub
-2. Import in Vercel
-3. Add a Vercel Postgres store (Storage → Create → Postgres)
-4. Deploy — env vars are auto-configured
+1. Push to GitHub.
+2. Import repo in Vercel.
+3. Configure production env vars (`POSTGRES_URL`, secrets).
+4. Deploy.
 
-For other platforms, you'll need a Postgres-compatible database and the `POSTGRES_URL` connection string env var.
+## Known Tradeoffs
 
----
+- Query logic currently lives in `db/queries.ts` (large file; planned split by domain).
+- API routes are all dynamic to avoid static build-time DB coupling.
+- Build can pass even if DB is unreachable, but runtime still requires DB connectivity.
 
-## 8bitcn components
+## Roadmap (Short Term)
 
-Components are inlined in `/components/ui/8bit/` so you don't need the shadcn CLI to install them. If you want to add more components from the library:
-
-```bash
-pnpm dlx shadcn@latest add @8bitcn/[component-name]
-```
-
-They'll land in the same folder and use the same `font-press-start` class and box-shadow conventions.
+- Split `db/queries.ts` into domain-focused modules.
+- Normalize API response shape and error structure.
+- Expand integration-style tests for key user flows.

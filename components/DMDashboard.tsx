@@ -22,6 +22,17 @@ import
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/8bit/sheet'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/8bit/alert-dialog'
 import { LuLink } from "react-icons/lu"
 import { LuPencil } from "react-icons/lu"
 import { LuDownload } from "react-icons/lu"
@@ -356,6 +367,27 @@ export function DMDashboard({
     }
   }
 
+  const handleDeleteMember = async (member: Member) => {
+    setLoading(true)
+    setActionError(null)
+    try {
+      const res = await fetch('/api/members', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dmToken, memberId: member.id }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Failed to delete member')
+
+      setMembers(prev => prev.filter(m => m.id !== member.id))
+      setAllItems(prev => prev.filter(i => i.ownerId !== member.id))
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to delete member')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────
 
   return (
@@ -491,6 +523,39 @@ export function DMDashboard({
                           Copy
                         </Button>
                       </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            id={`dm-delete-player-btn-${m.id}`}
+                            className={`dm-delete-player-btn dm-delete-player-btn-${m.id} h-8 text-8bit-sm w-full`}
+                            size="sm"
+                            variant="destructive"
+                            disabled={loading}
+                          >
+                            Delete Player
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle id={`dm-delete-player-dialog-title-${m.id}`}>
+                              Delete {m.name}?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription id={`dm-delete-player-dialog-description-${m.id}`}>
+                              This will permanently remove this player from the campaign. All of their items and all of
+                              their gold will be gone forever. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              id={`dm-delete-player-confirm-btn-${m.id}`}
+                              onClick={() => void handleDeleteMember(m)}
+                            >
+                              Delete Player
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   ))}
                 </div>

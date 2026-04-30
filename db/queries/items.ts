@@ -169,3 +169,10 @@ export async function deleteItem(
   )
   return (rowCount ?? 0) > 0
 }
+
+export async function deleteItemsByOwnerId(ownerId: string): Promise<number> {
+  const { rowCount } = await sql`
+    DELETE FROM items WHERE owner_id = ${ownerId}
+  `
+  return rowCount ?? 0
+}

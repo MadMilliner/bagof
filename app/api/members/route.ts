@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getMemberByToken, updateMemberName, getDMSession, addMember, logActivity } from '@/db/queries'
+import {
+  getMemberByToken,
+  getMemberById,
+  updateMemberName,
+  getDMSession,
+  addMember,
+  deleteMemberById,
+  deleteItemsByOwnerId,
+  logActivity
+} from '@/db/queries'
 import { checkRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
@@ -56,5 +65,47 @@ export async function PATCH(req: NextRequest) {
   } catch (err) {
     console.error('[PATCH /api/members]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const rateLimited = checkRateLimit(req, 20, 60_000)
+  if (rateLimited) return rateLimited
+
+  try {
+    const { dmToken, memberId } = await req.json()
+
+    if (!dmToken || !memberId) {
+      return NextResponse.json({ error: 'dmToken and memberId are required' }, { status: 400 })
+    }
+
+    const session = await getDMSession(dmToken)
+    if (!session) {
+      return NextResponse.json({ error: 'Invalid DM token' }, { status: 401 })
+    }
+
+    const member = await getMemberById(memberId)
+    if (!member || member.sessionId !== session.id) {
+      return NextResponse.json({ error: 'Member not found' }, { status: 404 })
+    }
+
+    const deletedItems = await deleteItemsByOwnerId(member.id)
+    const deleted = await deleteMemberById(member.id)
+    if (!deleted) {
+      return NextResponse.json({ error: 'Failed to delete member' }, { status: 500 })
+    }
+
+    await logActivity(
+      session.id,
+      null,
+      session.dmRole,
+      'member_delete',
+      `${member.name} removed (${deletedItems} item${deletedItems === 1 ? '' : 's'} deleted; all gold removed)`
+    )
+
+    return NextResponse.json({ success: true, deletedItems })
+  } catch (err) {
+    console.error('[DELETE /api/members]', err)
+    return NextResponse.json({ error: 'Failed to delete member' }, { status: 500 })
   }
 }

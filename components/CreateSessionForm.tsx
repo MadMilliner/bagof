@@ -336,11 +336,10 @@ export function CreateSessionForm()
           <div className="space-y-2">
             <label className="font-press-start text-[10px]">Currency System</label>
             <Select
-              id="currency-system-select"
               value={currencyType}
               onValueChange={value => setCurrencyType(value as 'dnd' | 'wealth')}
             >
-              <SelectTrigger className="w-full text-[10px]">
+              <SelectTrigger id="currency-system-select" className="w-full text-[10px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -352,11 +351,10 @@ export function CreateSessionForm()
           <div className="space-y-2">
             <label className="font-press-start text-[10px]">What do you prefer to be called?</label>
             <Select
-              id="dm-role-select"
               value={dmRole}
               onValueChange={setDmRole}
             >
-              <SelectTrigger className="w-full text-[10px]">
+              <SelectTrigger id="dm-role-select" className="w-full text-[10px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

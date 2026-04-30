@@ -33,14 +33,18 @@ pnpm install
 
 ### 2. Configure environment
 
-Create `.env.local` with your Vercel Postgres connection string:
+Create `.env.local` with a local dev database URL:
 
 ```bash
 cp .env.example .env.local
-# Edit .env.local with your POSTGRES_URL
+# Edit .env.local with your LOCAL_POSTGRES_URL
 ```
 
-> **Tip:** If you've linked the project to Vercel (`vercel link`), the CLI can pull these values automatically with `vercel env pull .env.local`.
+For production (Vercel), set `POSTGRES_URL` to your Neon connection string.
+
+Runtime behavior:
+- Outside Vercel (local dev/test): uses `LOCAL_POSTGRES_URL` (or `POSTGRES_URL_LOCAL`).
+- In Vercel runtime: uses `POSTGRES_URL`.
 
 ### 3. Run
 

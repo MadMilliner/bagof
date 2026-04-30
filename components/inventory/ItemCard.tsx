@@ -169,11 +169,10 @@ export function ItemCard({
               ) : (
                 <div id={`item-edit-form-${item.id}`} className="item-edit-form mb-2 space-y-2 pt-2">
                   <Select
-                    id={`item-type-select-${item.id}`}
                     value={draftType}
                     onValueChange={value => setDraftType(value as Item['type'])}
                   >
-                    <SelectTrigger className="item-type-select w-full text-8bit-sm">
+                    <SelectTrigger id={`item-type-select-${item.id}`} className="item-type-select w-full text-8bit-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

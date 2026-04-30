@@ -737,11 +737,10 @@ function GiveMemberGold({
 
         <div id={`give-gold-actions-${member.id}`} className="give-gold-actions flex gap-2 items-center mb-2">
           <Select
-            id={`give-gold-field-select-${member.id}`}
             value={field}
             onValueChange={value => setField(value as 'publicGold' | 'privateGold')}
           >
-            <SelectTrigger className="give-gold-field-select h-9 flex-1 sm:flex-none sm:w-[130px] text-8bit-sm">
+            <SelectTrigger id={`give-gold-field-select-${member.id}`} className="give-gold-field-select h-9 flex-1 sm:flex-none sm:w-[130px] text-8bit-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

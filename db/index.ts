@@ -4,11 +4,21 @@ export { sql }
 // Export the pool connector for transactions (BEGIN/COMMIT/ROLLBACK)
 export const connect = sql.connect.bind(sql)
 
-// Validate that the database connection string is configured
+const isVercelRuntime = process.env.VERCEL === '1'
+const localUrl = process.env.LOCAL_POSTGRES_URL || process.env.POSTGRES_URL_LOCAL
+
+// Prefer a local database when running outside Vercel.
+// This keeps dev/test traffic off the production Neon database.
+if (!isVercelRuntime && localUrl) {
+  process.env.POSTGRES_URL = localUrl
+}
+
+// Validate that the selected database connection string is configured
 if (!process.env.POSTGRES_URL) {
   throw new Error(
-    'Missing POSTGRES_URL environment variable. ' +
-    'Add it to .env.local (see .env.example) or run: vercel env pull .env.local'
+    'Missing database URL. ' +
+    'Set LOCAL_POSTGRES_URL (or POSTGRES_URL_LOCAL) for local/dev runs, ' +
+    'or POSTGRES_URL for Vercel/production.'
   )
 }
 

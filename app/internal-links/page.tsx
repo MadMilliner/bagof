@@ -8,6 +8,7 @@ import { InternalLinksPagination } from './internal-links-pagination'
 import { InternalLinksPasswordGate } from './PasswordGate'
 import { InternalLinksLogoutButton } from './logout-button'
 import { SessionListSkeleton } from './session-list-skeleton'
+import { resolvePublicAppOrigin } from '@/lib/appOrigin'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -82,8 +83,8 @@ async function SessionsBody({ page }: { page: number }) {
     getSessionsWithMembersPage(page),
   ])
   const host = h.get('host')
-  const proto = h.get('x-forwarded-proto') ?? 'https'
-  const origin = host ? `${proto}://${host}` : ''
+  const proto = h.get('x-forwarded-proto')
+  const origin = resolvePublicAppOrigin(host, proto)
 
   if (total === 0) {
     return <p className="font-press-start text-8bit-sm text-muted-foreground">No sessions found.</p>

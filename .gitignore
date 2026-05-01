@@ -23,6 +23,12 @@ drizzle/
 .DS_Store
 *.pem
 npm-debug.log*
+pnpm-debug.log*
+.yarn-integrity
+coverage/
+*.log
 .vercel
 .env*.local
 tsconfig.tsbuildinfo
+.vscode/
+.idea/

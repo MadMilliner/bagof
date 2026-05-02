@@ -21,6 +21,7 @@ import {
 } from 'react-icons/lu'
 import { Card, CardContent } from '@/components/ui/8bit/card'
 import { Button } from '@/components/ui/8bit/button'
+import XpBar from '@/components/ui/8bit/xp-bar'
 import { formatCurrency } from '@/components/gold/GoldPanel'
 import type { ActivityEntry } from '@/types'
 
@@ -84,6 +85,40 @@ function formatActivityDetails(details: string, currencyType: 'dnd' | 'wealth'):
   })
 }
 
+/** @8bitcn/xp-bar retro variant; value stays under 100 so the level-up overlay never appears while loading. */
+function ActivityLogLoadingXpBar() {
+  const [value, setValue] = useState(20)
+
+  useEffect(() => {
+    let frame = 0
+    const start = performance.now()
+    const tick = (t: number) => {
+      const elapsed = t - start
+      const wave = (Math.sin(elapsed / 480) * 0.5 + 0.5) * 88 + 6
+      setValue(Math.min(99, Math.round(wave)))
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [])
+
+  return (
+    <div className="space-y-3 w-full" role="status" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Loading activity</span>
+      <XpBar
+        variant="retro"
+        value={value}
+        progressBg="bg-primary"
+        className="w-full"
+        progressProps={{ className: "h-4" }}
+      />
+      <p className="font-press-start text-8bit-xs text-muted-foreground text-center">
+        Loading activity...
+      </p>
+    </div>
+  )
+}
+
 export function ActivityLog({ token, role, currencyType = 'dnd' }: ActivityLogProps) {
   const [entries, setEntries] = useState<ActivityEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -121,9 +156,7 @@ export function ActivityLog({ token, role, currencyType = 'dnd' }: ActivityLogPr
     return (
       <Card>
         <CardContent className="pt-4 pb-4">
-          <p className="font-press-start text-8bit-sm text-muted-foreground text-center">
-            Loading activity...
-          </p>
+          <ActivityLogLoadingXpBar />
         </CardContent>
       </Card>
     )

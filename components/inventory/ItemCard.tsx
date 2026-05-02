@@ -226,7 +226,7 @@ export function ItemCard({
                     )}
                     {onUpdate && !isEditing && (
                       <Button id={`item-edit-notes-btn-${item.id}`} className={`item-edit-notes-btn item-edit-notes-btn-${item.id}`} size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                        Edit Notes
+                        Edit
                       </Button>
                     )}
                     {onDelete && (
@@ -265,7 +265,7 @@ export function ItemCard({
                     )}
                     {onUpdate && !isEditing && (
                       <Button id={`item-dm-edit-notes-btn-${item.id}`} className={`item-dm-edit-notes-btn item-dm-edit-notes-btn-${item.id}`} size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                        Edit Notes
+                        Edit
                       </Button>
                     )}
                     {onDelete && (
